@@ -1,31 +1,14 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
+#include <unistd.h>
 #include <assert.h>
-#include "commom.h"
-#include "common_threads.h"
+#include <fcntl.h>
+#include <sys/types.h>
 
-volatile int counter = 0;
-int loops;
-
-void *worker(void arg) {
-	int i;
-	for (i = 0; i < loops; i++) {
-		counter++;
-	}
-	return NULL;
-}
-
-int main(int argc, char *argv[]) {
-	if (argc != 2) {
-		fprintf(stderr, "usage: threads <value>\b");
-		exit(1);
-	}
-	loops = atoi(argv[1]);
-	pthread_t p1, p2;
-	printf("initial value : %d\n", counter);
-	Pthread_create(&p1, NULL, worker, NULL);
-	Pthread_create(&p2, NULL);
-	return 0;
-}
-
+int main (int argc, char *argv[]) {
+    int fd = open("/tmp/file", O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU);
+    assert(fd > -1);
+    int rc = write(fd, "hello world\n", 13);
+    assert(rc == 13);
+    close(fd);
+    return 0;
+}    
