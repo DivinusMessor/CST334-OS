@@ -1,3 +1,10 @@
+/*
+# Name: Yukio Rivera
+# Date: 3/15/2022 
+# Title: Lab 2 – Step1  
+# Description: This program is an example of parent/child process
+*/
+
 #include <stdio.h>      /* printf, stderr */
 #include <sys/types.h>  /* pid_t */
 #include <unistd.h>     /* fork */

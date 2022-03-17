@@ -1,3 +1,11 @@
+/*
+# Name: Yukio Rivera
+# Date: 3/15/2022
+# Title: Lab 2 – Step5
+# Description: This program is an example of parent/child process with 
+# the added command of ls requested by the asssingment 
+*/
+
 #include <stdio.h>      /* printf, stderr */
 #include <sys/types.h>  /* pid_t */
 #include <unistd.h>     /* fork */
@@ -13,19 +21,14 @@ int main(int argc, char *argv[]) {
     if (pid == -1) {
         fprintf(stderr, "can't fork, error %d\n", errno);
     }
-    if (pid){
-        // Parent process
-        for (i=0;i<100;i++) {
-            printf("\t \t \t Parent Process %d \n",i);
-            usleep(n);
-        }
-    }
+	// If the pid shows the child process then it does the ls command 
     else if(pid == 0) {
         execlp("/bin/ls", "ls", NULL);
     }
+	// Waits for the child process to end 
     else {
         wait(NULL);
-        printf("Child Complete");
+        printf("Child Complete\n");
         exit(0);
     }
 }

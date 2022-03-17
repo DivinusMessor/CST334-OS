@@ -1,0 +1,6 @@
+Step3) Just running ./Lab2_step1 will cause a "Segmentation fault" and the program will be unable to execute 
+
+Step4) There is a delay with bigger numbers. The larger the number the greater of the delay. I ran "time" command on the different times and got 
+	3000 - 0.336s
+	500  - 0.081s
+	5000 - 0.536s		

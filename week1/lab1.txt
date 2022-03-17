@@ -13,7 +13,7 @@
 #         I was also learning the syntax I did what made sense to me at the time.
 
 
-# Source code that was provided by professor
+# Source code that was provided by professor that echos info 
 echo Executing $0
 echo $(/bin/ls | wc -l) files
 wc -l $(/bin/ls)
@@ -25,7 +25,7 @@ echo "\$\$"=$$
 user=`whoami`
 numusers=`who | wc -l`
 echo "Hi $user! There are $numusers users logged on."
-# Checks to see if I'm the person running file
+# Checks to see if I'm, Yukio, running file
 if [ $user = "rive2817" ]
 then
     echo "Now you can proceed!"
@@ -41,7 +41,7 @@ then
         echo "The area of the rectangle is $area"
         echo "Would you like to repeat for another rectangle [Yes/No]?"
         read response
-# If user said they do not want to calculate rectangle area it will
+# If user said they do not want to calculate another rectangle area it will
 # prompt user for radius to calculate area of circle
         while [ $response != "Yes" ]
         do
