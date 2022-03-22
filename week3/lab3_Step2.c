@@ -20,7 +20,7 @@ int main(int argc,char *argv[]){
    exit(0);
   }
   else if(fork()==0){
-  printf("\nReader on the downstream end of the pipe \n");
+  printf("\nReader on the downstream end of the pipe \n\n");
   close(fds[1]);
   while((count=read(fds[0],buff,60))>0){
     for(i=0;i<count;i++){

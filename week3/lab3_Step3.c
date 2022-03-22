@@ -1,10 +1,10 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
-/*Sample C program for Lab assignment 3*/
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+/*Sample C program for Lab assignment 3*/
 
 //main
 int main() {
@@ -14,13 +14,14 @@ int main() {
     if (fork() == 0) {
         dup2(fds[0], 0);
         close(fds[1]);
-        execlp("more", "more", 0);
-    }
+    	execlp("more", "more", 0);
+	}
     /*child 2 duplicates upstream into stdout */
     else if (fork() == 0) {
         dup2(fds[1], 1);
+
         close(fds[0]);
-        execlp("ls", "ls", 0);
+        execlp("cat", "cat", "/etc/passwd", 0);
     }
     else { /*parent closes both ends and wait for children*/
         close(fds[0]);
