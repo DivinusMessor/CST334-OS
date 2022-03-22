@@ -1,3 +1,10 @@
+/*
+# Name: Yukio Rivera
+# Date: 3/22/2022
+# Title: Lab 3 – Step2
+# Description: Step 2 code that was provided for us 
+*/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -20,7 +27,7 @@ int main(int argc,char *argv[]){
    exit(0);
   }
   else if(fork()==0){
-  printf("\nReader on the downstream end of the pipe \n\n");
+  printf("\nReader on the downstream end of the pipe \n");
   close(fds[1]);
   while((count=read(fds[0],buff,60))>0){
     for(i=0;i<count;i++){
