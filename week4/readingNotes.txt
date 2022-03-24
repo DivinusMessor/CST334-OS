@@ -1,0 +1,10 @@
+Chapter 17 : Free Space Management
+
+Free space is equal sized and kept in a list. When a client requests one of them, return the first entry 
+Free-space management becomes more difficult when the free space you are managing consists of variable-sizedunit
+   This arises in a user level memory allocation library (malloc() and free()
+   Also in OS physical memory when using segmentation to implement virtual memory 
+
+External Frangmentation: the free space gets chopped into little pieces of different sizes and is thus frangemented. 
+   Since it is fragmented all the pieces do not amount to a whole chunk on memory 
+   
