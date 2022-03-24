@@ -7,4 +7,52 @@ Free-space management becomes more difficult when the free space you are managin
 
 External Frangmentation: the free space gets chopped into little pieces of different sizes and is thus frangemented. 
    Since it is fragmented all the pieces do not amount to a whole chunk on memory 
-   
+
+***Assumptions***
+When using malloc() it takes size, which is the number of bytes 
+   requested by the application; it hands back a pointer, or a 
+   void pointer, to a region of that size or greater. 
+The complementary routine void free() takes a pointer and frees the 
+corresponding chunk
+
+malloc() manages heap library and the generic data structures that are 
+   used to manage free space in heap is some kind of free list 
+   They contain references to all the free chunks of space in the 
+   managed region of memory.
+
+Allocators could have the problem of internal and External
+   Frangmentation 
+   internal Frangmentation: if an allocator hands out chunks of
+   memory bigger than that requested, any unasked for (and thus unused)
+   space in such a chunk is considered internal fragmentation (because the waste occurs inside the allocated unit)
+
+We’ll also assume that once memory is handed out to a client, it cannot
+   be relocated to another location in memory
+
+allocator manages a contiguous region of bytes. In some cases, an 
+   allocator could ask for that region to grow; for example, a 
+   user-level memory-allocation library might call into the kernel to 
+   grow the heap (via a system call such as sbrk) when it runs out
+   of space
+
+*** Low Level Mechanism ***
+Splitting and Coalescing 
+   splitting: it will find a free chunk of memory that can satisfy the 
+   request and split it into two. The first chunk it will return to the 
+   caller; the second chunk will remain on the list.
+   if a request for 1 byte were made,
+   and the allocator decided to use the second of the two elements on 
+   the list to satisfy the request, the call to malloc() would return 20 
+   (the address of the 1-byte allocated region)
+
+A corollary mechanism found in many allocators is known as coalescing of 
+   free space. while the entire heap is now free, it is seemingly
+   divided into three chunks of 10 bytes each. Thus, if a user requests 
+   20 bytes, a simple list traversal will not find such a free chunk, 
+   and return failure.
+In order to avoid the problem is fragmenting the memory the allocator 
+   coalesces free space in memory. look carefully at the addresses of 
+   the chunk you are returning as well as the nearby chunks of free 
+   space; if the newlyfreed space sits right next to one (or two, as in 
+   this example) existing free chunks, merge them into a single larger 
+   free chunk.
