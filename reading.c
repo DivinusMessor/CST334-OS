@@ -1,14 +1,10 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#define MAX_COUNT 500
-#define BUF_SIZE 100
-
-int x;
-
-void main(void) {
-	fork();
-
-        fork();
+#include <stdlib.h>
+int main(int argc, char *argv[]) {
+    printf("location of code : %p\n", main);
+    printf("location of heap : %p\n", malloc(100e6));
+    int x = 3;
+    printf("location of stack: %p\n", &x);
+    return x;
 }
+

@@ -56,3 +56,207 @@ In order to avoid the problem is fragmenting the memory the allocator
    space; if the newlyfreed space sits right next to one (or two, as in 
    this example) existing free chunks, merge them into a single larger 
    free chunk.
+
+***Tracking the size of allocated regions***
+Free() determines the size of the pointer that its trying to free byn 
+   using malloc() library. Most allocators store a big of information in 
+   a header block which is kept in memory, right before the handed out 
+   memory. (figure 17.1) ptr = malloc(20) example. The header contains a 
+   magic number to provide additional integrity checking. When the user 
+   calls free(prt) the library then uses simple pointer math to figure 
+   out where the header begins. The library can tehn determine if the 
+   magic number matches the expected value as a sanity check and 
+   caluclate the size of the newly-freed region via simple math. 
+      NOTE: the size of the free region is the size of the header plus 
+      the size of the space allocated to the user. Thus, when a user 
+      requests N bytes of memory, the library does not search for a free 
+      chunk of size N; rather,it searches for a free chunk of size N 
+      plus the size of the header.  
+
+***Embedding A free List****
+You need to build the list inside the free space itself. We are assuming 
+   that the heap is built within some free space acquired via a call to 
+   the system call mmap ();this is not the only way to build such a heap 
+   but serves us well in this example (pg6)
+   Now, let’s imagine that a chunk of memory is requested, say of size
+   100 bytes. To service this request, the library will first find a 
+   chunk that is large enough to accommodate the request; because there 
+   is only one free chunk (size: 4088), this chunk will be chosen. Then, 
+   the chunk will be split into two: one chunk big enough to service the 
+   request (and header, as described above), and the remaining free 
+   chunk. 
+When free memory is franmented you need you merge neighboring chunks. 
+   When finished the heap will be whole again 
+
+When the heap runs out of space thre simple approach is to just fail, in 
+   some examples its the only opinion but thus returns null. To request 
+   more memory from the OS the system call sbrk is used. To service
+   the sbrk request, the OS finds free physical pages, maps them into the
+   address space of the requesting process, and then returns the value of
+   the end of the new heap; at that point, a larger heap is available, and the request can be successfully serviced.
+
+***Basic Strategies***
+The ideal allocator is both fast and minimizes fragmentation. 
+   Unfortunately, because the stream of allocation and free requests can 
+   be arbitrary (after all, they are determined by the programmer)
+
+   *** Best Fit
+   first, search through the free list and find chunks of free memory 
+   that are as big or bigger than the requested size. Then, return the 
+   one that is the smallest in that group of candidates; by returning a 
+   block that is close to what the user asks, best fit tries to reduce 
+   wasted space
+      Best Fit cost
+         However, there is a cost; naive implementations pay a heavy 
+         performance penalty when performing an exhaustive search for 
+         the correct free block.
+   ***Worst Fit
+   opposite of best fit; find the largest chunk and return the requested 
+   amount; keep the remaining (large) chunk on the free list. Worst fit 
+   tries to thus leave big chunks free instead of lots of small chunks 
+   that can arise from a best-fit approach.
+      Worst Fit cost
+         Once again, however, a full search of free space is required, 
+         and thus this approach can be costly. 
+   *** First Fit
+   finds the first block that is big enough and returns the requested   
+   amount to the user. First fit has the advantage of speed — no 
+   exhaustive search of all the free spaces are necessary — 
+   Thus, how the allocator manages the free list’s order becomes an 
+   issue. One approach is to use address-based ordering;
+   by keeping the list ordered by the address of the free space, 
+   coalescing becomes easier, and fragmentation tends to be reduced.  
+      First Fit cost 
+         but sometimes pollutes the beginning of the free list with 
+         small objects.
+   *** Next Fit
+   Similar to first fit but  keeps an extra pointer to the location 
+   within the list where one was looking last.
+      Next Fit cost
+         The performance of such an approach is quite
+         similar to first fit, as an exhaustive search is once again 
+         avoided.
+
+***Segregated Lists***
+The basic idea is simple: if a particular application
+   has one (or a few) popular-sized request that it makes, keep a 
+   separate list just to manage objects of that size; all other requests 
+   are forwarded to a more general memory allocator
+This approach introduces new complications into a system as well. For 
+   example, how much memory should one dedicate to the pool of memory 
+   that serves specialized requests 
+Slab Allocator used to solve this issue by; Specifically, when the 
+   kernel boots up, it allocates a number of object caches for kernel 
+   objects that are likely to be requested frequently (such as
+   locks, file-system inodes, etc.); the object caches thus are each 
+   segregated free lists of a given size and serve memory allocation and 
+   free requests quickly.  When a given cache is running low on free 
+   space, it requests some slabs of memory from a more general memory 
+   allocator
+
+***Binary Buddy***
+free memory is first conceptually thought of as one big space of size 2 
+   N. When a request for memory is made, the search for
+   free space recursively divides free space by two until a block that 
+   is big enough to accommodate the request is found (and a further 
+   split into two would result in a space that is too small).
+      *** cost
+         ; note that this scheme can suffer from internal fragmentation, 
+         as you are only allowed to give out power-of-two-sized blocks. 
+Binary checks each block and its buddy to see if they are both free. 
+   This recursive coalescing process continues up the tree, either 
+   restoring the entire free space or stopping when a buddy is found to 
+   be in use
+
+*** Other ideas ****
+Issues with the top solutions are scaling. Specifically, searching lists 
+   can be quite slow. Thus, advanced allocators use more complex data 
+   structures to address these costs, trading simplicity for 
+   performance. Examples include balanced binary trees, splay trees, or 
+   partially-ordered trees
+
+
+
+
+Chapter 18: Pageing intro
+paging: to chop up space into fixed-sized pieces. Instead of splitting 
+   up a process’s address space into some number of variable-sized 
+   logical segments (e.g., code, heap, stack), we divide it into 
+   fixed-sized units, each of which we call a page. 
+   We view physical memory as an array of fixed sized slots called page 
+   frames, each of these frames can contain a single virtual memory page 
+
+***A Simple Example and Overview***
+advantage is the simplicity of free-space management that paging 
+   affords. For example, when the OS wishes to place our tiny 64-byte
+   address space into our eight-page physical memory, it simply finds 
+   four free pages; perhaps the OS keeps a free list of all free pages 
+   for this, and just grabs the first four free pages off of this list.
+
+To record where each virtual page of the address space is placed in
+   physical memory, the operating system usually keeps a per-process data
+   structure known as a page table.
+   The major role of the page table is to
+   store address translations for each of the virtual pages of the 
+   address space, thus letting us know where in physical memory each 
+   page resides.
+
+When a process generates a virtual address, the OS and hardware
+   must combine to translate it into a meaningful physical address. 
+   Turning “21” into binary form, we get “010101”, Thus, the virtual 
+   address “21” is on the 5th (“0101”th) byte of virtual
+   page “01” (or 1). physical frame number (PFN) (also sometimes
+   called the physical page number or PPN) is 7 (binary 111). Thus, we 
+   can translate this virtual address by replacing the VPN with the PFN 
+   and then issue the load to physical memory (pg4 figure 18.3) Our 
+   final physical address is 1110101 (117 in decimal), and is exactly 
+   where we want our load to fetch data from (Figure 18.2, page 2).
+
+***Where are pages stored***
+we store the page table for each process in memory somewhere.
+   much of OS memory itself can be virtualized, and thus page tables can 
+   be stored in OS virtual memory (andeven swapped to disk),
+
+Pages can get huge, a 32bit address with 4k pages can be a 20-bit vpn 
+   and 12 bit offset.(2^20)
+
+page table. In general, a page table stores virtual-to-physical address 
+   translations, thus letting the system know where each page of an 
+   address space actually resides in physical memory. Because each 
+   address space requires such translations, in general there is one 
+   page table per process in the system.
+
+***Whats in the page table***
+The page table is just a data structure that is used to map virtual 
+   addresses (or really, virtual page numbers) to physical addresses 
+   (physical frame numbers).
+
+Linear page table is an array. The OS indexes the array by the virtual 
+   page number and looks up the page-table entry(PTE) in order to find 
+   the desired physical frame number(PFN) 
+   Bits:
+      Valid Bit: common to indicate whether the particular translation 
+         is valid for example, when a program starts running, it will 
+         have code and heap at one end of its address space, and the 
+         stack at the other
+      Invalid Bit: All the unused space in-between will be marked as 
+         invalid and if the process tries to access the invalid memory 
+         it will generate a trap to the OS which will likely terminate 
+         the process.
+      Protection Bit: indicating whether the page could be read from, 
+         written to, or executed from. Accessing these bits will throw
+         a trap
+      Present Bit: indicate where the page is in physical memory or 
+         disk (if if was swapped out)
+      Dirty Bit: incidating whether the page was modified since it was 
+         brought into memory 
+      Reference Bit(accessed bit): sometimes used to track whether a 
+         page has been accessed, useful to determine which pages are 
+         popular and should be kept in memory 
+Page table entry from the x86 architecture [I09]. It contains a 
+   present bit (P); a read/write bit (R/W) which
+   determines if writes are allowed to this page; a user/supervisor bit
+   (U/S) which determines if user-mode processes can access the page; a 
+   few bits (PWT, PCD, PAT, and G) that determine how hardware caching 
+   works for these pages; an accessed bit (A) and a dirty bit (D); and 
+   finally, the page frame number (PFN) itself.
