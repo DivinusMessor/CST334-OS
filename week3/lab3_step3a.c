@@ -26,9 +26,11 @@ int main() {
         /*child 2 duplicates upstream into stdout */
         else if (fork() == 0) {
             dup2(fds[1], 1);
+			int file = open("/etc/passwd", O_RDONLY);
+			dup2(file, 0);
 
             close(fds[0]);
-            execlp("cat", "cat", "/etc/passwd", 0);
+            execlp("cat", "cat", 0);
         }
         else { /*parent closes both ends and wait for children*/
             close(fds[0]);

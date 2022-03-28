@@ -1,0 +1,15 @@
+# Name: Yukio Rivera
+# Date: 3/22/2022
+# Title: Lab 3 – Step1
+# Description: Step 1 code that was provided for us
+
+Step1) I was able to compile and run the program provided by the professor
+   I noticed it ran a command and displayed all the files in the current Description
+
+Step2) I was able to compile and run the program provided by the professor
+   It displayed text. I ran it a bunch of times and I noticed that the text
+   can switch between which comes first, reader or writer. It seemed random
+
+Step3) I modified one of the previous programs, and it was able to run the pipe
+   command. It would display different information dependent on if I was 
+   running it on my person computer or the server. 
