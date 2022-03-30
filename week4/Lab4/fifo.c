@@ -32,7 +32,6 @@ int main(int argc, char *argv[]){
     int totalFaults = 0; // keeps track of the total page faults
     int totalAccesses = 0;
     int totalHits = 0;
-    double hitRate = 0;
     
     for (i = 0; i < C_SIZE; i++){//initialise cache array  
         cache[i].pageno = -1;
@@ -49,14 +48,17 @@ int main(int argc, char *argv[]){
             }
             totalFaults++;
             enqueue(q, page_num);
+
         } else {
             totalHits++;
         }
     }
-    hitRate = ((double)totalHits/(double)totalAccesses) * 100;
-    printf("%d Total Accesses, %d Total Hits, %d Total Page Faults,  %0.2f%% Hit Rate.\n",
-        totalAccesses, totalHits, totalFaults, hitRate);
+
+    float hitRate = ((float)totalHits/(float)totalAccesses) * 100;
+    printf(
+    "%d Total Accesses, %d Total Hits, %d Total Page Faults, %2.2f%% Hit Rate.\n", 
+    totalAccesses, totalHits, totalFaults, hitRate);
+    
     queue_destroy(q);
     return 0;
-
 }
