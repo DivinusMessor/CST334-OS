@@ -3,7 +3,7 @@
 
 /*
 # Name: Yukio Rivera
-# Date: 3/22/2022
+# Date: 3/29/2022
 # Title: Lab 4 
 # Description: Gain experience with page replacement
 */
@@ -30,8 +30,8 @@ int main(int argc, char *argv[]){
     q = queue_create(); // queue that I created 
     int i;
     int totalFaults = 0; // keeps track of the total page faults
-    int totalAccesses = 0;
-    int totalHits = 0;
+    int totalAccesses = 0; // counter for all the pages in the txtfile
+    int totalHits = 0; // total sucessful hits in the cache
     
     for (i = 0; i < C_SIZE; i++){//initialise cache array  
         cache[i].pageno = -1;
