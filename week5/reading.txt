@@ -1,0 +1,80 @@
+Chapter 26: Concurrency
+The state of a single thread is like a process. It has a program counter 
+    that tracks where the program is fetching instructions from. Each 
+    thread has its own registers it uses for computation, thus if there 
+    are two threads that are running on a single processor when 
+    switching from running one (T1) to running the other (T2), a context 
+    switch must take place. 
+        The context switch between threads looks like a process switch. 
+        The state of the thread (T1) must be saved to the register and 
+        the state of (T2) must be rerstored before running thread 2. 
+
+You store the state of thread on a (TCB) thread control box.
+    There is a few  major different between this and PCB. For threads, 
+    the address space remains the same and we dont need to switch to a 
+    diff page table
+    Another difference is the stack. In a single threaded proces there 
+    is a stack at the end of the address space. But in multithreaded 
+    there can be multiple threads inside the address stace each with 
+    their own stack (check if this is how to understand)
+        This means that it changes the structure of the address space 
+        and any stack allocated variables, parameters, return values and 
+        other things that we place on the stack will be in what is 
+        called thread-local storage, stack of relavent thread
+
+*** WHy Use THreads ***
+2 major reasons 
+    1 - parallelism: breaking out working into different CPUs to 
+    complete it faster on modern hardware 
+    2 - Avoid blocking program progress due to slow I/O. Threading 
+    enables overlap of I/O with other acitivities within a single 
+    program, much like multiprogramming did for processes across 
+    programs; many modern server based applications (web servers, 
+    database management systems, make use of threads in thier 
+    implemetations)
+
+Any any case mentioned you can use multi process but threads share 
+    address space and make it easier to share data 
+
+*** Thread Creation ***
+When multiple threads are created the order can be switched on which 
+    runs first depending on the scheduler (ref fig 26.4)
+    For example, once a thread is created, it may run immediately, which 
+    would lead to the execution shown in Figure 26.4 (page 5).
+    We also could even see “B” printed before “A”, if, say, the scheduler
+    decided to run Thread 2 first even though Thread 1 was created 
+    earlier; there is no reason to assume that a thread that is created 
+    first will run first
+
+Computers are hard enough to understand without concurrency. 
+    Unfortunately, with concurrency, it simply gets worse. Much worse.
+
+*** Why It gets worse: Shared Data ***
+Sometimes when you run a program the result will be wrong and it will 
+    change 
+
+*** The heart of the problem ***
+Each thread when running has its own private registers; the registers
+    are virtualized by the context-switch code that saves and restores
+    them
+When the T1 gets saved the counter gets set to 51. when T2 is restored 
+    the counter gets reset to 50 and chaged to 51 then saving 51 to 
+    memory again. not updated to 52 
+
+The results mentioned above is a result of race condition, or data race, 
+    the results depend on the timing execution of timely points in the 
+    execution. 
+        With some bad luck (i.e., context switches that occur at 
+        untimely points in the execution), we get the wrong result.
+    In fact, we may get a different result each time; thus, instead of a 
+        nice deterministic computation (which we are used to from 
+        computers), we call this result indeterminate, where it is not 
+        known what the output will be and it is indeed
+        likely to be different across runs.
+
+Critical Section: is a piece of code that accesses a shared variable (or more generally a shared resource) and must not be concurrently executed by more than one thread 
+
+mutual exclusion, This property guarantees that if one thread is 
+    executing within the critical section, the others will be prevented 
+    from doing so.
+
