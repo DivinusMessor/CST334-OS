@@ -8,10 +8,10 @@ pthread_t threads[NTHREADS];
 int main()
 {
    int i;
-   int iterations[10];
+   int catch[NTHREADS];
    for (i = 0; i < NTHREADS; i++){
-      iterations[i] = i;
-      pthread_create(&threads[i], NULL, go, &iterations[i]);
+      catch[i] = i;
+      pthread_create(&threads[i], NULL, go, &catch[i]);
    }
    for (i = 0; i < NTHREADS; i++)
    {
