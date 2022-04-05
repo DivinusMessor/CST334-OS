@@ -1,28 +1,48 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <time.h>
 
-void *go(void *);
-#define NTHREADS 10
-pthread_t threads[NTHREADS];
+// #define N 10
+// #define M 10
+// #define L 10
+int size = 8;
+
+
 int main()
 {
-   int i;
-   int catch[NTHREADS];
-   for (i = 0; i < NTHREADS; i++){
-      catch[i] = i;
-      pthread_create(&threads[i], NULL, go, &catch[i]);
-   }
-   for (i = 0; i < NTHREADS; i++)
-   {
-      printf("Thread %d returned\n", i);
-      pthread_join(threads[i], NULL);
-   }
-   printf("Main thread done.\n");
-   return 0;
-}
-void *go(void *arg)
-{
-   printf("Hello from thread %d with iteration %d\n", (int)pthread_self(), *(int *)arg);
-   return 0;
+    
+    srand(time(NULL));
+
+    double matrixA[size][size];
+    double matrixB[size][size];
+    // double matrixC[N][L];
+    //int i,j,k;
+
+    
+    for (int i = 0; i < size; i++){
+        for (int j = 0; j < size; j++){
+            matrixA[i][j] = rand() % 10;
+            matrixB[i][j] = rand() % 10;
+        }
+    }
+
+    
+    // Displaying matA        
+    for (int i = 0; i < size; i++){
+        for(int j = 0; j < size; j++){
+            printf("%g ", matrixA[i][j]);
+        }
+        printf("\n");
+    }
+
+    printf("-------------------\n");
+             
+    // Displaying matB               
+    for (int i = 0; i < size; i++){
+        for(int j = 0; j < size; j++)
+            printf("%g ",matrixB[i][j]);
+        printf("\n");   
+    }
+   
 }
