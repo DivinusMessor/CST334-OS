@@ -8,10 +8,11 @@ pthread_t threads[NTHREADS];
 int main()
 {
    int i;
-   int iteration[10];
-   for (i = 0; i < NTHREADS; i++)
-      
-      pthread_create(&threads[i], NULL, go, &i);
+   int iterations[10];
+   for (i = 0; i < NTHREADS; i++){
+      iterations[i] = i;
+      pthread_create(&threads[i], NULL, go, &iterations[i]);
+   }
    for (i = 0; i < NTHREADS; i++)
    {
       printf("Thread %d returned\n", i);
