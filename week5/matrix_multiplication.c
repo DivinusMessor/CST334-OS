@@ -1,35 +1,115 @@
+/*
+# Name: Yukio Rivera
+# Date: 4/5/2022
+# Title: Lab 5 
+# Description: Using threads to multiply 2 matrix
+*/
+
 #include <stdlib.h>
-#include <pthread.h>
 #include <stdio.h>
+#include <time.h>
+#include <pthread.h>
 
-#define N 1024
-#define M 1024
-#define L 1024
+#define matrixSize 3
+#define NTHREADS matrixSize
+pthread_t threads[NTHREADS];
 
-double matrixA[N][M];
-double matrixB[M][L];
-double matrixC[N][L];
+// Initialize all matrices
+double matrixA[matrixSize][matrixSize];
+double matrixB[matrixSize][matrixSize];
+double matrixC[matrixSize][matrixSize];
 
-int main()
-{
+void* matrixMath(void* arg) {
+    int fromMain = *((int*)arg); // int addr
 
-    srand(time(NULL));
-    for (int i = 0; j < N; i++)
-        for (int j = 0; j < M; j++)
-            matrixA[i][j] = rand();
-
-    srand(time(NULL));
-    for (int i = 0; j < M; i++)
-        for (int j = 0; j < L; j++)
-            matrixB[i][j] = rand();
-
-    for (int j = 0; j < L; j++)
-    {
-        double temp = 0;
-        for (int k = 0; k < M; k++)
-        {
-            temp += matrixA[i][k] * matrixB[k][j];
+    // Code base provided by prof 
+    for (int i = 0; i < matrixSize; i++) {
+        double result = 0;
+        for (int j = 0; j < matrixSize; j++) {
+            result += matrixA[fromMain][j] * matrixB[j][i];
         }
-        matrixC[i][j] = temp;
+        matrixC[fromMain][i] = result;
     }
+
+    return 0;
 }
+
+
+int main() {
+    // Initialize Random generator
+    srand(time(NULL));
+    int check[NTHREADS];
+
+    // Initiate 3 matrices
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = 0; j < matrixSize; j++) {
+            matrixA[i][j] = rand() % 10;
+            matrixB[i][j] = rand() % 10;
+            matrixC[i][j] = 0;
+        }
+    }
+
+    printf("\n"); // empty line 
+
+    for (int i = 0; i < matrixSize; i++)
+    {
+        for (int j = 0; j < matrixSize; ++j)
+        {
+            if (j == (matrixSize - 1))
+            {
+                printf(" %g ", matrixA[i][j]);
+                printf("\n");
+            }
+            else
+            {
+                printf(" %g ", matrixA[i][j]);
+            }
+        }
+    }
+
+    printf("\n");
+
+    for (int i = 0; i < matrixSize; i++)
+    {
+        for (int j = 0; j < matrixSize; ++j)
+        {
+            if (j == (matrixSize - 1))
+            {
+                printf(" %g  ", matrixB[i][j]);
+                printf("\n");
+            }
+            else
+            {
+                printf(" %g ", matrixB[i][j]);
+            }
+        }
+    }
+
+    printf("\n");
+
+    // Threads to perform computation
+    for (int i = 0; i < NTHREADS; i++) {
+        // wrap value in arr to pass it to the thread function
+        check[i] = i;
+        // thread create 
+        pthread_create(&threads[i], NULL, matrixMath, &check[i]);
+    }
+
+    // Rejoin Threads
+    for (int j = 0; j < NTHREADS; j++) {
+        pthread_join(threads[j], NULL);
+    }
+
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = 0; j < matrixSize; j++) {
+            if (j == (matrixSize - 1)) {
+                printf(" %g ", matrixC[i][j]);
+                printf("\n");
+            } else if (j == 0) {
+                printf(" %g ", matrixC[i][j]);
+            } else {
+                printf(" %g ", matrixC[i][j]);
+            }
+        }
+    }
+}  
