@@ -47,7 +47,63 @@ For using a semaphore, figure 31.3 shows that they simply surround the
 Example: 
     In this senario there are two threads
     the first calls sem_wait()l it will first decrement the semaphore to
-    0, in thread 0. then it will only wait() if the value is greater than or equal to
-    0. Because the value is 0, semiwait() will return and allow the 
-    calling thread will continue. Thread 0 is now free to enter critical 
-    section. 
+    0, in thread 0. then it will only wait() if the value is greater 
+    than or equal to 0. Because the value is 0, semiwait() will return 
+    and allow the calling thread will continue. Thread 0 is now free to 
+    enter critical section. if no other thread tries to get the lock 
+    while thread 0 is inside the citical sectionm when it calls sem_post
+    () it will restore the value of the semaphore to 1 (not wake a 
+    waiting therad, because none exist) 
+
+    Thread 0 can hold the lock (when it calls sem_wait() but not 
+    sem_post()) and another thread tries to enter the citical section by
+    calling sem_wait(), thread 1 will decrement the value of the 
+    semaphore to -1 and this wait (putting itself to sleep and 
+    relinquishing the processor)
+
+    When therad 0 runs again it will eventually call sem_post() 
+    incrementing the value of the semaphore back to 0, then wake the 
+    wake the waiting thread (thread 1) which will then be able to aquire 
+    the lock itself. When thread 1 finishes it will increment the value 
+    of the semaphore, retoring it to 1 again 
+
+    Question: Why does thread 0 not go to sleep?
+        Note that Thread 1 goes into the sleeping state when it tries to
+        acquire the already-held lock; only when Thread 0 runs again can 
+        Thread 1 be awoken and potentially run again.
+        Question: What dictates a thread to hold a lock? does one thread 
+        have to be wait and the other post?
+    
+*** sephamore for ordering ***
+Semaphores are also useful to order events in a concurrent program.
+
+Example: A thread may with to wait for a list to become non empty so it
+    can delete an element from it.
+
+In this pattern of usage we often find one thread waiting for something
+    to happen, and another thread making that something happen and then 
+    signaling that it has happenedm thus waking the waiting thread. We 
+    are thus using the sephamore as an ordering primitive 
+
+what should the initial value of this semaphore be? The answer, of 
+    course, is that the value of the semaphore should be set to is 0.
+There are two cases:
+    First, the parent creates the child but the child has not run yet 
+        (it is sitting) in a ready queue but not running) The parent 
+        will call sem_wait() before the child has called sem_post(); 
+        we'd like the parent to wait for the child to run. The only way 
+        this will happen is if the value of the sephamore is not greater 
+        than 0; hence 0, is the intial value. The parent runs, decrements
+        the sephamore (to -1) then waits (sleeping). When the child 
+        finally runs, it will call sem_post() increment the value of the
+        sephamore to 0 and wake the parent which will then return from sem_wait() and finish the program. 
+
+The second case occurs when the child runs to completion before the 
+    parent gets a chance to call sem_wait(). In this case the child will 
+    first call sem_post() thus incrementing the value  of the semaphore 
+    from 0 to 1. When the parent runs, it will call sem_wait() and find 
+    the value of semaphore to be 1; the parent will thus decrement the 
+    value (to 0) and return from sem_wait() without waiting also 
+    achieving the desired effect. 
+
+*** The Producer/Consumer (Bounded Buffer) Problem ***
