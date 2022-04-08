@@ -1,0 +1,53 @@
+Chapter 31: Semaphores 
+One needs both locks and conditions to solve concurrency problems
+
+Semaphore is a synchronization primitive 
+    a single primitive for all things related to synchronization, one can
+    use semaphores as both locks and condition variables 
+
+*** Semaphores: A Definition ***
+A Semaphore is an obkect with an integer value that we can maipulate with
+two routines; in the POSIX standard, these routines are sem_wait() and 
+sem_post(). 
+    The initial value of the semaphore determines its behavior, before 
+    calling any other routine to interact with the semaphore, we must
+    firs initialize it 
+
+#include <semaphore.h>v  // this looks like we are initializing sem_t
+sem_t s;                 // then adding pointer s to init with value 0, 1
+sem_init(&s, 0, 1);
+
+In the figure we declare a semaphore (s) and initialize it to the value 1
+    by passing 1 in as the third argument. The second argument to 
+    sem_init() will be set to 0 in all of the examples we see, this 
+    indicates that the semaphore is shared between threads in the same 
+    process 
+
+In the new code we see that sem_wait() will either return right away
+    (because the value of the semaphore was one or higher when we called 
+    sem wait()) or it will cause the caller to suspend execution 
+    waiting for suspension post Multiple threads may call into sem_wait
+    () and thus all be qued waiting to be woken 
+
+we can see that sem_post() does not wait for some particular condition 
+    to hold like sem_wait() does. Rather it simply increments the value 
+    of the sephamore and then, if there is a thread waiting to be woken
+    wakes up one of them 
+
+Third the value of semaphore, when negative, is equal to the number of 
+    waiting threads. Though generally isn't seen by users of the semaphores, this is worth knowing 
+
+*** Binary Semaphores (Locks) ***
+For using a semaphore, figure 31.3 shows that they simply surround the
+    ciritical section of interested with a sem_wait() / sem_post() pair. 
+    in order for this to work this needs to occure to initialize the 
+    value of semaphore m. (Initialize to X in the figure) - what is x? -
+        x should be 1
+
+Example: 
+    In this senario there are two threads
+    the first calls sem_wait()l it will first decrement the semaphore to
+    0, in thread 0. then it will only wait() if the value is greater than or equal to
+    0. Because the value is 0, semiwait() will return and allow the 
+    calling thread will continue. Thread 0 is now free to enter critical 
+    section. 
