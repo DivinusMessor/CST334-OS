@@ -10,7 +10,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#define matrixSize 3
+#define matrixSize 1024
 #define NTHREADS matrixSize
 pthread_t threads[NTHREADS];
 
