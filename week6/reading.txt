@@ -35,7 +35,8 @@ we can see that sem_post() does not wait for some particular condition
     wakes up one of them 
 
 Third the value of semaphore, when negative, is equal to the number of 
-    waiting threads. Though generally isn't seen by users of the semaphores, this is worth knowing 
+    waiting threads. Though generally isn't seen by users of the 
+    semaphores, this is worth knowing 
 
 *** Binary Semaphores (Locks) ***
 For using a semaphore, figure 31.3 shows that they simply surround the
@@ -72,7 +73,7 @@ Example:
         acquire the already-held lock; only when Thread 0 runs again can 
         Thread 1 be awoken and potentially run again.
         Question: What dictates a thread to hold a lock? does one thread 
-        have to be wait and the other post?
+        have to be wait and the other post? Resources willing to give up?
     
 *** sephamore for ordering ***
 Semaphores are also useful to order events in a concurrent program.
@@ -96,7 +97,8 @@ There are two cases:
         than 0; hence 0, is the intial value. The parent runs, decrements
         the sephamore (to -1) then waits (sleeping). When the child 
         finally runs, it will call sem_post() increment the value of the
-        sephamore to 0 and wake the parent which will then return from sem_wait() and finish the program. 
+        sephamore to 0 and wake the parent which will then return from 
+        sem_wait() and finish the program. 
 
 The second case occurs when the child runs to completion before the 
     parent gets a chance to call sem_wait(). In this case the child will 
@@ -107,3 +109,365 @@ The second case occurs when the child runs to completion before the
     achieving the desired effect. 
 
 *** The Producer/Consumer (Bounded Buffer) Problem ***
+The next problem iis the producer/consumer problem, bounded buffer 
+    problem 
+
+First Attempt: 
+    At first attempt at solving the problem will introduce two 
+        semaphores, empty and full, which threads will use to indicate 
+        when a buffer entry has been emptied, or filled respectively, 
+
+    In 31.10 example the producer first waits for a buffer to be empty 
+    in order to put data into it, and the consumer similarly waits for a 
+    buffer to become filled before using it.
+
+    Let us say MAX = 10, Let us assume that there are multiple producers 
+        and mutliple consumers. We have a rare condition; two threads 
+        try to run at the same time and data gets overwritten 
+        Solution:
+            Adding a mutual extension; the filling of a buffer and 
+            incrementing of the index into the buffer is a critical 
+            section, and thus must be guarded. YOu can use the binary 
+            semaphore and use some locks. 
+            The consumer aquires the mutex and then calls sem_wait but 
+            holds the lock this causes a block and it yields() CPU. then
+            the producer runs but calls sem_wait() but the consumer is 
+            already holding the lock so it gets stuck waiting and there 
+            is a deadlock. 
+                The consumer holds the mutex and is waiting for the 
+                someone to signal full. The producer could signal full 
+                but is waiting for the mutex. Thus, the producer and 
+                consumer are each stuck waiting for each other: a 
+                classic deadlock.
+
+*** At last a working solution ***
+To this the problem we must reduce the scope of the lock.
+
+We move the mutex aquire and release to be just around the critical 
+    section; the full and empty wait and single code is left outside. The
+    reults is a simple rounded buffer, a commonly-used pattern in 
+    multithreaded programs. 
+    
+*** Reader-writer locks***
+A problem is a desire for a more flexible locking primitive that admits 
+    that different data structures accesses might require different kinds
+    of locking. 
+
+For example; imagine a number of current list operations including 
+    insert and and simple look ups. An insert will change the the state
+    of the list (thus a critical section makes sense) but a read will 
+    simply look up the data structure. So long you can guarentee that the
+    look up ONLY reads the data then you can have multiple of them 
+    running at the same time, or we can allow many lookups to proceed 
+    concurrently. this is known as a reader-writer lock.
+
+If some thread wants to update the data structure in question it should
+    call the new pair of synchronization operations 
+    rwlock_acquire_writelock(), to acquire a write lock, and 
+    rwlock_release_writelock(), to release it.
+
+Internally, these simply use the writelock semaphore to ensure that only 
+    a single writer can acquire the lock and thus enter the critical 
+    section to update the data structure in question.
+
+When aquiring a read lock, the reader first aquires lock and then 
+    increments the readers variable to track how many readers are 
+    currently within the data structure.  
+
+The important step then taken within rwlock_acquire_readlock() occurs   
+    when the first reader acquires the lock; in that case, the reader 
+    also acquires the write lock by calling sem_wait() on the writelock 
+    semaphore, and then releasing the lock by calling sem_post().
+
+Thus once a reader has aquired a read_lcok more readers will be allowed
+    to acquire the read lock too however any thread that wishes to 
+    acquire the write lock will have to wait until all readers are 
+    finished; the last one to exit the critical section calls sem_post() 
+    on "writelock" and thus enables a waiting writer to aquire the lock. 
+        COns:
+            readers can starve writers 
+
+Finally it should be noted that reader-writer locks should be used with 
+    some caution. They often add more overheads and thus do not end up 
+    speeding up performace a compared to using simple and fast locking 
+    primitives. 
+
+*** Dinning Philosophers ***
+The basic setup for the problem is this (as shown in Figure 31.14):     
+    assume there are five “philosophers” sitting around a table. Between 
+    each pair of philosophers is a single fork (and thus, five total). 
+    The philosophers each have times where they think, and don’t need ]
+    any forks, and times where they eat. In order to eat, a philosopher 
+    needs two forks, both the one on their left and the one on their 
+    right. The contention for these forks, and the synchronization 
+    problems that ensue, are what makes this a problem we study in 
+    concurrent programming
+        The key challenge, then, is to write the routines get forks() and
+        put forks() such that there is no deadlock, no philosopher 
+        starves and never gets to eat, and concurrency is high (i.e., as 
+        many philosophers can eat at the same time as possible).
+        Helper Functions: 
+            int left(int p) { return p; }
+            int right(int p) { return (p + 1) % 5; }
+        When philosopher p wishes to refer to the fork on their left, 
+        they simply call left(p). Similarly, the fork on the right of a 
+        philosopher p is referred to by calling right(p); the modulo 
+        operator therein handles the one case where the last philosopher 
+        (p=4) tries to grab the fork on their right, which is fork 0. 
+        heir right, which is fork 0. We’ll also need some semaphores to 
+        solve this problem. Let us assume we have five, one for each 
+        fork: sem t forks[5].
+
+*** Broken Solution ***
+The problem is deadlock. If each philosopher happens to grab the fork
+    on their left before any philosopher can grab the fork on their 
+    right, each will be stuck holding one fork and waiting for another, 
+    forever. eat phililospher is holding onto one fork and waiting for 
+    one to be available but each one is being held 
+
+*** A solution: Breaking dependancy ***
+A solution to this problem is to change how forks are aquired by at least
+    one philosopher. let assume phililospher 4 grabs the fork and is 
+    in a different order than the others code remains the same 
+The last phililospher grabs the right fork before left so there is no 
+    situation where each philosopher grabs one fork and is stuck waiting 
+
+*** Thread Throttling ***
+Thread Throttling also called admission control 
+The specific problem is this: how can a programmer
+    prevent “too many” threads from doing something at once and bogging
+    the system down? 
+    Answer: Decide upon a threashold for "too many" and then use a 
+        semaphore to limit the number of threads concurrently executing 
+        the piece of code in question.
+
+*** How to implement semaphores ***
+Built from primitives, locks, and condition variables 
+
+Difference between sephamores and zemaphores is that we dont maintain the
+    invariant that that the value of the semaphore when negative 
+    reflects the number of threads that are waiting. This value will 
+    never be below zero. 
+
+Chapter 32 : Common Concurrency Problems
+Many of the early work in concurrency problems was focused on deadlock
+
+This chapter focuses on common concurrency problems found in code base 
+
+*** What types of bugs exist? ***
+The book focuses on a study by Lu et al in the open source MYSQL, Apache,
+    mozilla, and open office. There were a total of 105 bugs, 74 were not
+    deadlock and 31 were deadlock bugs. 
+
+Non-deadlock bugs 
+Non deadlock bugs make up the majority of concurrency bugs, according to 
+    Lu study. But what type of bugs are they? how do they arise? how do
+    we fix them? We are going to discuss 2 types of non deadlock bugs 
+        atomicity violation bugs and order violation bugs 
+
+*** Atomicity-Violation bugs ***
+Thread 1::
+if (thd->proc_info) {
+    fputs(thd->proc_info, ...);
+}
+Thread 2::
+thd->proc_info = NULL;
+
+In this example two different threads access the field proc_info in the 
+    structure thd. The first thread checks if the value is non-null and 
+    then prints its value; the second thread sets it to NULL. Clearly if
+    the first thread performs the check but then is interrupted before 
+    the call to fputs() the second thread could run in-between thus 
+    setting the pointer to null; when the first thread resumes, it will 
+    crash, as a null pointer will be dereferenced by fputs()
+
+The formal Definition of atomicity violation, the desired serializability
+    amoung multiple memory accesses is violated (a code region is 
+    intended) to be atmoic but the atomicity is not enforced during 
+    execution. In the code above the code has an atomicity assumption
+    about the check for non-NULL of proc_info and the usage of proc_info 
+    in the fputs() call when the assumption is incorrect the code will
+    not work as desired. 
+    Solution: We add locks around the shared variable references, 
+    ensuring that when either thread accesses the proc_info field it has 
+    a lock held (proc_info lock) the code could accessing the structure 
+    shoudl also have a lock 
+
+pthread_mutex_t proc_info_lock = PTHREAD_MUTEX_INITIALIZER;
+
+Thread 1 ::
+pthread_mutex_lock(&proc_info_lock);
+if (thd->proc_info) {
+    fputs(thd_>proc_info, ...);
+}
+pthread_mutex_unlock(&proc_info_lock);
+
+Thread2 ::
+pthread_mutex_lock(&proc_info_lock);
+thd->proc_info = NULL;
+pthread_mutex_lock(&proc_info_lock);
+thd->proc_info = NULL;
+pthread_mutex_unlock(&proc_info_lock);
+
+*** Other violation bugs ***
+Thread 1::
+void init() {
+    mThread = PR_CreateThread(mMain, ...);
+}
+
+Thread 2::
+void mMain(...) {
+    mState = mThread->State;
+}
+
+Formal Definition of order violation: the desire order between two 
+    groups of memory access is flipped (A should always be executed 
+    before B  but the order is not enforced during execution) 
+
+To fix this type of bug you need to enforce ordering. Using condition 
+    variables is an easy fix to add this style of synchronization. 
+
+To fix the code on Fig.32.5 we added a condition vairable mtCond and 
+    corresponding lock (mtLock) as well as a state variable (mtInit). 
+    Thread 2 will check the state of this variable to see that the 
+    initialization has occured and thus continue as proper. 
+
+Non-deadlock summary 
+A large fraction (97%) of non deadlock bugs are studied are either 
+    atomicity or order violations. As more automated code checking tools
+    develop they likely should focus on checking for these types of bugs.
+
+*** Deadlock bugs ***
+Deadlock: It occurs whenn a thread , ex thread 1, is holding a lock (L1)
+    and waiting for another L2 but the thread, thread 2, that holds L2 is
+    waiting for L1 to be released. 
+
+Thread 1:               Thread 2:
+pthread_mutex_lock(L1); pthread_mutex_lock(L2);
+pthread_mutex_lock(L2); pthread_mutex_lock(L1);
+
+Note: deadlock in the code is not guarenteed but it MAY occur
+The oresense of a cycle in the graph is indicitive of the deadlock
+
+*** Why do deadlocks occur ***
+In large code bases complex dependancies arise bw compontents
+
+The nature of encapsulation is also a cause. As developers we are taught
+    to hide details of implementation and thus make software easier to 
+    build in a modular way. Unfortunatly, such modularity does not mesh 
+    well with locking. 
+
+*** Conditions for deadlock ***
+4 conitions needs to occur for deadlock 
+Mutual Exclusion: Threads claim exclusive control of resources that they 
+    require
+hold-and-wait: threads hold resources allocated to them while waiting for
+    additional resources 
+no preemption: resources(locks) cannot be forceibly removed from threads 
+    that are holding them 
+circular wait: there exist a circular chain of threads such that each 
+    thread holds one or more resources that are being requested by the 
+    next thread 
+
+if any of these conditions are not met deadlock cannot occur. thus we 
+    are going to explore strategies that prevent deadlock, each of these 
+    strategies seek to prevent one of the above conditions from arising 
+    and thus is one approach to handling the deadlock problem. 
+
+*** Prevention ***
+Circular wait  
+    Most frequently employeed technique is to write your locking code 
+        such that you never induce a circular wait. the most 
+        straightforward way to do this is to provide a total ordering
+        on lock aquisition For example, if there are two locks in the 
+        system you can always make sure to get L1 before L2
+    
+    In more complex systems partial order may work better. 
+
+    Both total and partial ordering requrie careful desgin of locking 
+        strategies and must be constructed with great care. Further 
+        ordering is just a convention and a sloppy programmer can easily 
+        ignore the locking protocol and potentially cause deadlock. 
+    
+Hold-and-wait
+    Deadlock can be avoided by aquiring all the locks at once, 
+        automatically
+    It requires that anytime a thread grabs a lock it must also get the 
+        global prevention lock. 
+    Problems: encapsulation works against us when calling a routine, This
+        approach requires us to know exactly which lock must be held and
+        to acquire them ahead of time. This technique also is likely to 
+        decrease concurrency as all locks must be aquired early on 
+        instead of when they are truly needed 
+
+*** No Preemption ***
+A example is a routine called pthread_mutex_trylock() which will try to
+    grab the lock and return success if it does or an error code if the 
+    lock is already held, in which case you can try again later 
+
+top:
+pthread_mutex_lock(L1);
+if (pthread_mutex_trylock(L2) != 0) {
+    pthread_mutex_unlock(L1);
+    goto top;
+}
+
+Problem: A problem that could come up is livelock, it is possible that 
+    two threads could both repeatedly attempting this sequence and 
+    repeatedly fail to aquire the lock cause each thinks that they are 
+    being held. Not a deadlock but none the less nothing is being 
+    processed. 
+        Solution for livelock: one could add a random delay before 
+            looping back and trying again decreasing the odds of 
+            repeated interference 
+
+    One point: This solution skirts around the hard parts of using a 
+    trylock approach. The first problem that would likley exist again 
+    arises due to encapsulation, if one of the locks is burried in some 
+    routine that is getting called the jump back to the begining becomes 
+    more complex to implement. 
+
+*** Mutual Exclusion ***
+The final prevention technique would be to avoid the need for mutual
+    exclusion at all. The idea behind these lock-free (and
+    related wait-free) approaches here is simple: using powerful hardware
+    instructions, you can build data structures in a manner that does 
+    not require explicit locking
+
+int CompareAndSwap(int *address, int expected, int new) {
+    if (*address == expected) {
+        *address = new;
+        return 1; // success
+    }
+    return 0; // failure
+}
+
+Imagine we now wanted to atomically increment a value by a certain
+    amount, using compare-and-swap.
+void AtomicIncrement(int *value, int amount) {
+    do {
+        int old = *value;
+    } while (CompareAndSwap(value, old, old + amount) == 0);
+}
+
+*** Deadlock avoidance via scheduling ***
+Instead of deadlock prevention we can do avoidance. 
+Avoidance requires some global knowledge of which locks
+    various threads might grab during their execution, and subsequently 
+    schedules said threads in a way as to guarantee no deadlock can 
+    occur.
+
+As you can see, static scheduling leads to a conservative approach
+    where T1, T2, and T3 are all run on the same processor, and thus the
+    total time to complete the jobs is lengthened considerably. Though 
+    it may have been possible to run these tasks concurrently, the fear 
+    of deadlock prevents us from doing so, and the cost is performance.
+
+*** Detect and recover ***
+One final general strategy is to allow deadlocks to occasionally occur, 
+    and then take some action once such a deadlock has been detected.
+OS froze once a year, you would just reboot it and get happily (or
+    grumpily) on with your work. If deadlocks are rare, such a 
+    non-solution is indeed quite pragmatic
+
+
