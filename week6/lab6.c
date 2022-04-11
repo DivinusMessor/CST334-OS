@@ -27,6 +27,7 @@ void* produce(void *arg) {
     sem_wait(&empty);
     sem_wait(&mutex);
 
+	printf("Producer thread %lu :: %c >> buffer\n", pthread_self(), alpha[i]);
     buff = alpha[i];
     
     sem_post(&mutex);
@@ -36,10 +37,13 @@ void* produce(void *arg) {
 }
 
 void *consume(void *arg) {
+	int i = *((int*)arg); // added to test 
+
     sem_wait(&full);
     sem_wait(&mutex);
 
-    printf("Thread %c Entered Critical Contition...\n", buff);
+	printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), alpha[i]);
+    // printf("Thread %c Entered Critical Contition...\n", buff);
     buff = 0;
 
     sem_post(&mutex);
@@ -56,15 +60,28 @@ int main() {
     int blocker[52];
 
     int j = 0;
+
+	// printing letter array 
+	printf("Contents of Letter array: ");
     for (char letter = 'A'; letter <= 'Z'; ++letter) {
         alpha[j++] = letter; 
+		printf("%c ", letter);
     }
+
+	// space for new line
+	printf("\n");
+	
+	
+	
  
     for (int i = 0; i < NTHREADS; i++) {
         blocker[i] = i;
         pthread_create(&threads[i], NULL, produce, &blocker[i]);
         // pthread_create(&threads[i], NULL, produce, (void *)(size_t)i);
         pthread_create(&threads[i + 26], NULL, consume, &blocker[i]);
+		
+		// Printing char getting into buffer
+		// printf("Producer thread %lu :: %c >> buffer\n", threads, alpha[i]);
     }
 
     for (int i = 0; i < NTHREADS; i++) {
@@ -74,6 +91,9 @@ int main() {
         pthread_join(threads[i + 26], NULL);
         int temp = i + 26;
         //printf("Thread %d returned \n", alpha[temp]);
+
+		// Printing char getting out of buffer 
+		// printf("Consumer thread %lu :: buffer >> %c\n", threads, alpha[i]);
     }
 
     printf("Main thread done.\n");
