@@ -12,7 +12,7 @@
 #define NTHREADS 26
 pthread_t threads[2];
 // #define alphaSize 26
-#define buffer 1
+#define buffer 26
 
 char buff[26];
 char alpha[NTHREADS];
@@ -37,14 +37,16 @@ int get() {
 void *produce(void *arg) {
 	int i; // added to test 
 
-	for (i = 0; i < 26; i++) {
+	for (char letter = 'A'; letter <= 'Z'; ++letter) {
 		
+      //printf("Did it make it %d \n", (int)pthread_self());
+
 		sem_wait(&empty);
 		sem_wait(&mutex);
 
-		//printf("Alpha val: %c \n", alpha[i]);
-		put(alpha[i]); // attempt using get
-		printf("Producer thread %lu :: %c >> buffer\n", pthread_self(), alpha[i]);
+		
+		printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), letter);
+      put(letter); // attempt using get
 		// printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), alpha[i]);
 		// printf("Thread %c Entered Critical Contition...\n", buff);
 		// buff = 0;

@@ -1,89 +1,113 @@
+/**********************************************************************************
+# Name: Yukio Rivera
+# Date: 4/12/2022
+# Title: Lab 6
+# Description: Step 2 adding the producer/consumer 
+**********************************************************************************/
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <stdlib.h>
-// maximun size of integers to produce and consume
-#define MAX 26 // Create the producer and consumer threads
 
-pthread_t prod;
-pthread_t cons;
-// alphabet buffer
-int buffer[MAX];
-// utilized ASCII value for "A" - 65 to start to fill the buffer
-int start = 65;
-// Variables to keep track of buffer
+#define NTHREADS 26
+pthread_t threads[2];
+// #define alphaSize 26
+#define buffer 1
+
+char buff[26];
+char alpha[NTHREADS];
 int fill = 0;
 int use = 0;
-int loc = 0;
-// declare semaphores
+sem_t mutex;
 sem_t empty;
 sem_t full;
-sem_t mutex;
-// Function declarations
-void put(int value);
-int get();
-void *producer(void *arg);
-void *consumer(void *arg);
-int main()
-{
-   // Initiate semaphores
-   sem_init(&empty, 0, MAX);
-   sem_init(&full, 0, 0);
-   sem_init(&mutex, 0, 1);
 
-   // Initiate threads
-   pthread_create(&prod, NULL, producer, NULL);
-   pthread_create(&cons, NULL, consumer, NULL);
-   // Join threads
-   pthread_join(prod, NULL);
-   pthread_join(cons, NULL);
+void put (int value) {
+	buff[fill] = value;
+	fill = (fill + 1) % 26; // dependant on length of alpha?
+}
 
-   // Destroy semaphores
-   sem_destroy(&empty);
-   sem_destroy(&full);
-   sem_destroy(&mutex);
-   return 0;
+int get() {
+	int tmp = buff[use];
+	use = (use + 1) % 26;
+	return tmp;
 }
-// Adds value to buffer
-void put(int value)
-{
-   buffer[fill] = value;
-   fill = (fill + 1) % MAX;
+
+
+void *produce(void *arg) {
+	int i; // added to test 
+
+	for (i = 0; i < 26; i++) {
+		
+		sem_wait(&empty);
+		sem_wait(&mutex);
+
+		//printf("Alpha val: %c \n", alpha[i]);
+		put(alpha[i]); // attempt using get
+		printf("Producer thread %lu :: %c >> buffer\n", pthread_self(), alpha[i]);
+		// printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), alpha[i]);
+		// printf("Thread %c Entered Critical Contition...\n", buff);
+		// buff = 0;
+		sem_post(&mutex);
+		sem_post(&full);
+	}
+	// moved print line
+    return 0;
 }
-// Gets value from buffer
-int get()
-{
-   int temp = buffer[use];
-   use = (use + 1) % MAX;
-   return temp;
+
+void* consume(void *arg) {
+    int tmp = 0;
+	
+	while (tmp != 90) {
+		sem_wait(&full);
+		sem_wait(&mutex);
+
+		tmp = get();
+		printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), tmp);
+		// printf("Thread %c Entered Critical Contition...\n", buff);
+		//buff = 0;
+
+		sem_post(&mutex);
+		sem_post(&empty);
+
+	}
+	return 0;
 }
-// producer function for thread. Semaphores keep consumer thread away from buffer until its full
-void *producer(void *arg)
-{
-   for (int i = 0; i < MAX; i++)
-   {
-      sem_wait(&empty);
-      sem_wait(&mutex);
-      put(start);
-      // Prints int item being produce as "char" to make it an alphabet character
-      printf("Producer Inserted Item %c at %d\n", start, i);
-      start = start + 1;
-      sem_post(&mutex);
-      sem_post(&full);
-   }
-}
-// consumer function for thread. Semaphre kees producer thread away
-void *consumer(void *arg)
-{
-   for (int i = 0; i < MAX; i++)
-   {
-      sem_wait(&full);
-      sem_wait(&mutex);
-      int tmp = get();
-      // prints int item being consumed as "char" to make it an alphabet character
-      printf("Consumer Removed Item %c from %d\n", tmp, i);
-      sem_post(&mutex);
-      sem_post(&empty);
-   }
+
+int main() {
+    // Initialize our Semaphores
+    sem_init(&mutex, 0, 1);
+    sem_init(&empty, 0, buffer);
+    sem_init(&full, 0, 0);
+
+    int j = 0;
+
+	// printing letter array 
+	printf("Contents of Letter array: ");
+    for (char letter = 'A'; letter <= 'Z'; letter++) {
+		alpha[j] = letter; 
+		printf("%c ", alpha[j]);
+		j++;
+	}
+	
+
+	// space for new line
+	printf("\n");
+	
+    pthread_create(&threads[0], NULL, produce, NULL);
+	pthread_create(&threads[1], NULL, consume, NULL);
+
+	pthread_join(threads[0], NULL);
+	printf("Producer Thread Ended. \n");
+
+	pthread_join(threads[1], NULL);
+	printf("Consumer Thread Returned. \n");
+
+    printf("Main thread done.\n");
+
+    sem_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+
+    return 0;
 }
