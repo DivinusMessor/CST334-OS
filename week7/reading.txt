@@ -1,0 +1,19 @@
+Chapter 36: I/o
+CPU is attached to the main memory of the system of the system via
+    some kind of memory bus or interconnect. Some of the devices are 
+    to the system via a general I/O bus, which in modern systems are 
+    call PCI graphics and some other high preformance I/O devices might 
+    be found there 
+Lower down are one or more of peripheral bus, such as SCSI, Sata, or USB
+    USB devices include disks, mouse, or keyboard these are slow 
+
+We need heirarchical structures simply for physics and cost. The faster a
+    bus is the shorter is must be, thus a high performance memory bus doe
+    not have much room to plug devices into 
+
+Engineering a bus for high performance is costly so a hierarchical 
+    approach where components that demand high performance (liek 
+    graphics) cards are closer to the CPU. lower performance are 
+    farther away 
+
+*** A Canonical Device ***
