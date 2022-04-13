@@ -2,6 +2,13 @@
 *  334 Su 21 Lab6 Step 1                                                          *
 *  Description: threadSync.c - simple multi-threaded program with sychronization. *
 **********************************************************************************/
+/**********************************************************************************
+# Name: Yukio Rivera
+# Date: 4/12/2022
+# Title: ThreadSync.c
+# Description: Threadsync code provided by teacher
+**********************************************************************************/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>

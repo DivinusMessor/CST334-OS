@@ -1,89 +1,101 @@
+//Shared data: semaphore full, empty, mutex;
+//pool of n buffers, each can hold one item
+//mutex provides mutual exclusion to the buffer pool //empty and full count the number of empty and full buffers 
+//Initially: full = 0, empty = n, mutex = 1
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <stdlib.h>
-// maximun size of integers to produce and consume
-#define MAX 26 // Create the producer and consumer threads
 
-pthread_t prod;
-pthread_t cons;
-// alphabet buffer
-int buffer[MAX];
-// utilized ASCII value for "A" - 65 to start to fill the buffer
-int start = 65;
-// Variables to keep track of buffer
+#define NTHREADS 26
+#define BufferSize 1
+pthread_t threads[2];
+
+char letters[NTHREADS];
+char buffer[26];
 int fill = 0;
 int use = 0;
-int loc = 0;
-// declare semaphores
+
 sem_t empty;
 sem_t full;
 sem_t mutex;
-// Function declarations
-void put(int value);
-int get();
-void *producer(void *arg);
-void *consumer(void *arg);
-int main()
-{
-   // Initiate semaphores
-   sem_init(&empty, 0, MAX);
-   sem_init(&full, 0, 0);
-   sem_init(&mutex, 0, 1);
 
-   // Initiate threads
-   pthread_create(&prod, NULL, producer, NULL);
-   pthread_create(&cons, NULL, consumer, NULL);
-   // Join threads
-   pthread_join(prod, NULL);
-   pthread_join(cons, NULL);
-
-   // Destroy semaphores
-   sem_destroy(&empty);
-   sem_destroy(&full);
-   sem_destroy(&mutex);
-   return 0;
-}
-// Adds value to buffer
 void put(int value)
 {
    buffer[fill] = value;
-   fill = (fill + 1) % MAX;
+   fill = (fill+1) % 26;
 }
-// Gets value from buffer
 int get()
 {
-   int temp = buffer[use];
-   use = (use + 1) % MAX;
-   return temp;
+   int tmp = buffer[use];
+   use = (use + 1) % 26;
+   return tmp;
 }
-// producer function for thread. Semaphores keep consumer thread away from buffer until its full
-void *producer(void *arg)
+
+//Producer thread
+void * producer(void *arg)
 {
-   for (int i = 0; i < MAX; i++)
-   {
+    int i;
+    for(char alpha = 'A'; alpha <= 'Z'; alpha++)
+    {
+     //int i = *((int*)arg);
+      //do {
+     // produce next item ...
+
       sem_wait(&empty);
       sem_wait(&mutex);
-      put(start);
-      // Prints int item being produce as "char" to make it an alphabet character
-      printf("Producer Inserted Item %c at %d\n", start, i);
-      start = start + 1;
+      put(alpha);
+      //add the item to buffer
+      printf("Producer Thread %lu :: %c >> buffer \n" , pthread_self(), alpha);
       sem_post(&mutex);
       sem_post(&full);
-   }
+   } 
+   return NULL;
 }
-// consumer function for thread. Semaphre kees producer thread away
+
+
 void *consumer(void *arg)
 {
-   for (int i = 0; i < MAX; i++)
+   //Consumer thread
+   int tmp = 0;
+   while(tmp != 90)
    {
       sem_wait(&full);
       sem_wait(&mutex);
-      int tmp = get();
-      // prints int item being consumed as "char" to make it an alphabet character
-      printf("Consumer Removed Item %c from %d\n", tmp, i);
+      //printf("LETTER: %c\n", buffer);
+     // remove next item from buffer ...
+      tmp = get(); 
+      printf("Consumer thread %lu :: buffer >> %c\n", pthread_self(), tmp);
       sem_post(&mutex);
       sem_post(&empty);
+} 
+  return NULL;
+}
+
+int main()
+{
+   sem_init(&mutex, 0, 1);
+   sem_init(&empty, 0, BufferSize);
+   sem_init(&full, 0, 0);
+
+   int i = 0;
+   printf("Contents of letter array: ");
+   for(char alphabet = 'A'; alphabet <= 'Z'; ++alphabet){
+      letters[i] = alphabet;
+      printf("%c ", letters[i]);
+      i++;
    }
+   pthread_create(&threads[0], NULL, producer, NULL);
+
+   pthread_create(&threads[1], NULL, consumer, NULL);
+       
+   pthread_join(threads[0], NULL);
+   printf("Producer Thread Ended. \n");
+   pthread_join(threads[1], NULL);
+   printf("Consumer Thread Ended. \n");
+   sem_destroy(&mutex);
+   sem_destroy(&full);
+   sem_destroy(&empty);
+   
+ return 0;
 }
