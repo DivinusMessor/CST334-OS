@@ -1,10 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 int main(int argc, char *argv[]) {
-    printf("location of code : %p\n", main);
-    printf("location of heap : %p\n", malloc(100e6));
-    int x = 3;
-    printf("location of stack: %p\n", &x);
-    return x;
+
+   int a = 5;
+
+int fd = open(...) //opening a file
+
+int ret = fork();
+
+if (ret > 0) {
+
+   close(fd);
+
+   a = 6;
+
+   ...
+
+}
+
+else if (ret==0) {
+
+   printf("a=%d\n", a);
+
+   read(fd, something);
+
 }
 

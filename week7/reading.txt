@@ -34,7 +34,7 @@ A device has two important components. The first is hardware interface
 
 *** Canonical protocol ***
 Device interface is compromised of three registers:
-    Status register: can be read to see the current status of the device 
+    Status register: can be read to see the current status of the device
     Command Register: To tell the device to perform a certain task 
     Data Register: pass data to the device or get data from the device 
 Polling: OS waits until the device is ready to recieve a command by 
@@ -49,4 +49,40 @@ Typical interaction that the OS might have with a device is:
         command
     fourth, OS waits for the device to finish by again polling in a loop
         waiting to see if it is finished (it may then get an error code)
-    
+
+This is a simple and working protocol but it does come with issues:
+    the polling is inefficient and inconveniences involved 
+    it wastes a great deal of CPU time just waiting for the device to complete
+        its activity instead of switching to another process 
+
+*** Lowering the COU overhead with interrupts ***
+Instead of polling the OS can issue an interrupt put the calling process to sleep 
+    and context switch to another task 
+When device is finally finished with the operation it will raise a hardware interrupt
+    causing the CPU to jump into the OS at a presetermined interrupt service routine (ISR)
+
+interrupts thus allow for overlap of computation and I/O which is key for improved utilization
+    Instead of polling the CPU can run a different process while waiting for the first one to be done 
+    thus waking up process 1 after it is done 
+
+Not situtations are best suited for interrupts, if a device polls fast then an interrupt may make 
+    the process slower. Thus, if a device is fast, it may be best to poll; if it is slow, interrupts,
+    which allow overlap, are best.
+
+If the speed of the device is not known, or sometimes fast and sometimes slow, it may be best to use 
+    a hybrid that polls for a little while and then, if the device is not yet finished, uses interrupts. 
+    This two-phased approach may achieve the best of both worlds.
+
+livelock, that is, find itself only processing interrupts and never allowing a user-level process 
+    to run and actually service the re-quests.
+
+coalescing. In such a setup, a device which needs to raise an interrupt first waits for a bit before delivering 
+    the interrupt to the CPU. While waiting, other requests may soon complete, and thus multiple interrupts can be
+    coalesced into a single interrupt delivery, thus lowering the overhead of interrupt processing.
+
+ *** More efficient data movement with DMA ***
+A DMA engine is essentially a very specific device within a system that can orchestrate transfers 
+    between devices and main memory without much CPU intervention.
+    The OS would program the DMA engine by telling it where the data lives in memory, how much data to copy and 
+    which device to send it to. At that point the OS is done with the transfer and can proceed with other work. When
+    DMA is complete the DMA controller raises an interrupt and the OS knows the transfer is complete 
