@@ -17,3 +17,36 @@ Engineering a bus for high performance is costly so a hierarchical
     farther away 
 
 *** A Canonical Device ***
+A device has two important components. The first is hardware interface 
+    and the second is internal structure.
+    Hardware Interface: hardware must also have some kind of interface 
+        that allows the system software to control its operation. The 
+        hardware must have some kind of interface that allows the system 
+        software to control its operation. Thus all devices have a 
+        specified interface and protocol for typical interaction
+    Internal Structure: This part of the device is implementation 
+        specific and is responsible for implemenating the abstraction 
+        the device presents to the system. Very simple devices will have 
+        one or a few hardware chips to implement their functionality; 
+        more complex devices will include a simple CPU, some general 
+        purpose memory, and other device-specific chips to get their job 
+        done.
+
+*** Canonical protocol ***
+Device interface is compromised of three registers:
+    Status register: can be read to see the current status of the device 
+    Command Register: To tell the device to perform a certain task 
+    Data Register: pass data to the device or get data from the device 
+Polling: OS waits until the device is ready to recieve a command by 
+    repeatedly reading the status register (OS is asking whats going 
+    on)
+Protocols have 4 steps:
+Typical interaction that the OS might have with a device is: 
+    first, OS waits until the device is ready to recieve command
+    second, OS sends data down to the register
+    third, OS writes a command to the command register, doing so lets 
+        the device know data is present and it can start working on the 
+        command
+    fourth, OS waits for the device to finish by again polling in a loop
+        waiting to see if it is finished (it may then get an error code)
+    
