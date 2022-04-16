@@ -34,7 +34,7 @@ A device has two important components. The first is hardware interface
 
 *** Canonical protocol ***
 Device interface is compromised of three registers:
-    Status register: can be read to see the current status of the device
+    Status register: can be read to see the current status of the device 
     Command Register: To tell the device to perform a certain task 
     Data Register: pass data to the device or get data from the device 
 Polling: OS waits until the device is ready to recieve a command by 
@@ -50,87 +50,165 @@ Typical interaction that the OS might have with a device is:
     fourth, OS waits for the device to finish by again polling in a loop
         waiting to see if it is finished (it may then get an error code)
 
-This is a simple and working protocol but it does come with issues:
-    the polling is inefficient and inconveniences involved 
-    it wastes a great deal of CPU time just waiting for the device to complete
-        its activity instead of switching to another process 
 
-*** Lowering the COU overhead with interrupts ***
-Instead of polling the OS can issue an interrupt put the calling process to sleep 
-    and context switch to another task 
-When device is finally finished with the operation it will raise a hardware interrupt
-    causing the CPU to jump into the OS at a presetermined interrupt service routine (ISR)
+Chapter 37: HardDisk Drives
+Main form of persistent data storage 
 
-interrupts thus allow for overlap of computation and I/O which is key for improved utilization
-    Instead of polling the CPU can run a different process while waiting for the first one to be done 
-    thus waking up process 1 after it is done 
+*** Interface ***
+Drive consists of a large number of sectors (512-byte blocks) each of 
+    which can be written or read 
 
-Not situtations are best suited for interrupts, if a device polls fast then an interrupt may make 
-    the process slower. Thus, if a device is fast, it may be best to poll; if it is slow, interrupts,
-    which allow overlap, are best.
+The sectors are numbered from 0 to n -1 on a disk with n sectors. We can
+    view the disk as an array of sectors, 0 to n-1 is thus the address
+    space 
 
-If the speed of the device is not known, or sometimes fast and sometimes slow, it may be best to use 
-    a hybrid that polls for a little while and then, if the device is not yet finished, uses interrupts. 
-    This two-phased approach may achieve the best of both worlds.
+The only guarentee drive manufacturers make is that a single 512-byte 
+    write is atomic, it will either complete in its entireety or it 
+    wont comeplete at all, thus if a power loss occurs only a portion of
+    a larger write may complete (torn write)
 
-livelock, that is, find itself only processing interrupts and never allowing a user-level process 
-    to run and actually service the re-quests.
+THere is an "unwritten contract" of disk drives. It assumes that 
+    accessing two blocks near one another is faster than accessing block
+    that are farther away. Thus accessing blocks in a contiguous
+    (touching) chunks is the fastests access mode and usually much 
+    faster than a random access pattern
 
-coalescing. In such a setup, a device which needs to raise an interrupt first waits for a bit before delivering 
-    the interrupt to the CPU. While waiting, other requests may soon complete, and thus multiple interrupts can be
-    coalesced into a single interrupt delivery, thus lowering the overhead of interrupt processing.
+*** Basic Geometry ***
+Platter: a circular surface on which data is stores persistently by
+    inducing magnetic changes to it. Drives may have one or more platters
+    Each platter has 2 sides, each side called a surface
+Spindle: The platters are bound together by the spindle, its connected to
+    the motor that spins the platter around while the drive is powered on
+    and it spins at a constant fixed rate. (7200 to 15000 RPM). Single 
+    rotation takes around 6ms
+Track: Data is encoded on each surface in concentric circles of sectors,
+    we call it a track. a surface holds thousands of tracks
+Disk Head/Disk Arm: The head is the hardhard that read/write onto the 
+    surface. The head is moved around using the disk arm 
 
- *** More efficient data movement with DMA ***
-A DMA engine is essentially a very specific device within a system that can orchestrate transfers 
-    between devices and main memory without much CPU intervention.
-    The OS would program the DMA engine by telling it where the data lives in memory, how much data to copy and 
-    which device to send it to. At that point the OS is done with the transfer and can proceed with other work. When
-    DMA is complete the DMA controller raises an interrupt and the OS knows the transfer is complete 
+*** Simple Disk Drive ***
+simple disk with a single track (Figure 37.1). This track has just 12 
+    sectors, each of which is 512 bytes in size (our typical sector 
+    size, recall) and addressed therefore by the numbers 0 through 11. 
+    The single platter we have here rotates around the spindle, to which 
+    a motor is attached.
 
-*** Methods of Device interaction ***
-Two primary methods of device communication have been developed 
-    First, using I/O instructions - these instructions specify a way for the OS to send data 
-        to specific device registers and thus allow the construction of the protocols 
-        The os controls devices the the OS thus is the only entity allowed to directly 
-        communicate with them 
-    Second, using Memory mapped I/O. The hardware makes device registers available as 
-        if they were memory locations. To access a particular register the OS issues a load
-        (to read) or store (to write) the addressl the hardware then routes the load/store 
-        to the device instead of main memory 
-    
-*** Fitting into the OS: The Device Driver ***
-The last issue, how do we fit devices, each of which have very specific interfaces, into the 
-    OS which we would like to keep as general as possible
-    
-Problem is solved through abstraction
-    At the lowest level a piece of software in the OS must know in detail how a device works. 
-    We call this piece of software a device driver and any specifics of device interaction are
-    encapsulated within
+*** SIngle track latency: The rotational Delay ***
+To process a request hour disk just waits for the desired sector to 
+    rotate under the disk head.
+Rotational Delay: THe process of waiting for a sector to rotate under 
+    the head. The delay can be described by (R/2)
 
-The encapsulation can have downsides as well 
-    If there is a device that has many special capabilities but has to present a generic interface
-    to the rest of the kernel those special capabilities will go unused. ALl devices go with a baseline
-    capabilities and special add on will be lost to the file system.
+*** Multiple tracks: seek time ***
+Seek: To service a read the drive has to first move the disk arm to the
+    correct track, this process is called seek
+Seek has multiple phases: 
+    Acceleration: the disk arm gets moving, then 
+    coasting: as the arm is moving at full speed 
+    deceleration: arm slows down 
+    setting: the head is carefully positioned over the correct track 
 
-An IDE disk presents a simple interface to the system, consisting of four types of registers: 
-    control, command blocks, status, and error 
-    These registers are available by reading or writing to specific I/O addresses 
-    The basic protocol to interact with the device is as follows:
-        Wait for drive to be ready 
-        Write perameters to command registers 
-        Start the I/O
-        Data transfer 
-        Handle interrupts 
-        Error handling 
+After the seek, the disk arm has positioned the head over the right
+    track.
 
-There are four primary functions in the protocol; 
-    first, ide_rw() which queues a reqest or issues it directly to the disk. the routine waits for the request to complete 
-        and the calling process to sleep 
-    second, ide_start_request() used to send a request to the disk, in and out x86 instructions are called to read and write 
-        device registers 
-    the start request routine uses the third function, ide_wait_ready() to ensure the drive is ready before issuing a request 
-    finally the fourth, ide_intr() is invoked when an interrupt takes place it reads data from the device, wakes the prcess waiting 
-        for the I/O to complete and launches the next I/O via ide_start_request()
+The settling time is often quite significant .5 to .2 ms 
 
+After the desired sector is under the disk head the final phase of I/O 
+    will take place called transfer
+    transfer: data is either read from or written to the surface
 
+*** Other details ***
+Track Skew: to make sure that sequential reads can be properly serviced 
+    even when crossing track boundarie. 
+
+Without the skew the head would be moved to the next track but the 
+    desired next block would have passed thus needing to do a full 
+    rotation
+
+multi-zoned disk drives, where the disk is organized into multiple 
+    zones, and where a zone is consecutive set of tracks on a surface.
+
+cache, for historical reasons sometimes called a track buffer. This
+    cache is just some small amount of memory (usually around 8 or 16 
+    MB) which the drive can use to hold data read from or written to the 
+    disk. 
+
+When should the disk acknowledge the write has completed when it puts the
+    data in its memory or after the write has been written to disk. 
+    Write back(immidiate reporting): Complete when data is in memory 
+    Write through: Complete when data is written to disk 
+
+I/O time: Doing math for disk performance (pg 7)
+T(I/O) = T(seek) + T(rotation) + T(transfer)
+Random Workload: Reads to random locations on disk, common in database
+Sequential Workload: reads a large number of sectors consecutively from
+    disk. 
+Random is much faster than sequential. People will spend large amount of 
+    money on fast transfer and less on cheap but large storage amount 
+    (check this)
+
+*** Disk Scheduling ***
+By estimating the seek and possible rotational delay of a request, the disk scheduler can know how long
+each request will take, and thus (greedily) pick the one that will take the
+least time to service first. Thus, the disk scheduler will try to follow the
+principle of SJF (shortest job first) in its operation.
+
+*** Shortest Seek time first ***
+SSTF or Shorest seek first (SSF) orders the queue of IO requests by track
+    picking requests on the nearest tracks to complete first. 
+
+When is SSF not the best pick? 
+    When drive geometry is not available (when would it not be avai? 
+        servers?) to the host OS rather it sees a block of arrays
+    In that case we use, nearest block first(NBF) which schedules 
+        the request with the nearest block address first 
+
+    Second, is the issue of starvation: If many requests happen on one
+        specific track the other requests, for other tracks, will not be
+        given resources.
+
+*** Elevator (SCAN or C-SCAN) ***
+An alogorithum that moves back and forth across the disk servicing 
+    requests in order across tracks. 
+
+Sweep: a single pass across the disk 
+    If a request comes for a block on a track that has already been 
+    serviced on this sweep of the disk it is not handled immediately but 
+    rather queued until the next sweep 
+
+Scan has many vaients, some, Fscan, Cscan, 
+
+Scan does not represent the best scheduling tech: it does not really
+    adhere to shortest job first, it ignored rotation
+
+CRUX: What algorithum can take into account seek and rotation?
+
+*** SPTF: Shortest positioning time first ***
+or shortest access time first (SATF) is the solution to the CRUX
+    The answer to which sector should a head move to is, it depends.
+    THe answer lies in the why does it depends and the details around it
+    For this asnwer the depends is, relative time of seeking as compared 
+        to rotation. If rotation is faster, then SSTF is good, if seek 
+        time is faster then seeking further is better 
+
+--- Livny's Law ---
+Almost any question can be answered with "it depends" 
+
+*** Other scheduling issues ***
+Where is disk scheduling done?
+In older systems, the operating system did all the scheduling; after 
+    looking through the set of pending requests, the OS would pick the 
+    best one, and issue it to the disk. When that request completed, the 
+    next one would be chosen, and so forth. Disks were simpler then, and 
+    so was life.
+
+In modern systems, disks can accommodate multiple outstanding requests, 
+    and have sophisticated internal schedulers themselves (which can
+    implement SPTF accurately; inside the disk controller, all relevant 
+    details are available, including exact head position). Thus, the OS 
+    scheduler usually picks what it thinks the best few requests are 
+    (say 16) and issues them all to disk; the disk then uses its 
+    internal knowledge of head position and detailed track layout 
+    information to service said requests in the best possible (SPTF) 
+    order.
 
