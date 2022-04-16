@@ -86,3 +86,51 @@ A DMA engine is essentially a very specific device within a system that can orch
     The OS would program the DMA engine by telling it where the data lives in memory, how much data to copy and 
     which device to send it to. At that point the OS is done with the transfer and can proceed with other work. When
     DMA is complete the DMA controller raises an interrupt and the OS knows the transfer is complete 
+
+*** Methods of Device interaction ***
+Two primary methods of device communication have been developed 
+    First, using I/O instructions - these instructions specify a way for the OS to send data 
+        to specific device registers and thus allow the construction of the protocols 
+        The os controls devices the the OS thus is the only entity allowed to directly 
+        communicate with them 
+    Second, using Memory mapped I/O. The hardware makes device registers available as 
+        if they were memory locations. To access a particular register the OS issues a load
+        (to read) or store (to write) the addressl the hardware then routes the load/store 
+        to the device instead of main memory 
+    
+*** Fitting into the OS: The Device Driver ***
+The last issue, how do we fit devices, each of which have very specific interfaces, into the 
+    OS which we would like to keep as general as possible
+    
+Problem is solved through abstraction
+    At the lowest level a piece of software in the OS must know in detail how a device works. 
+    We call this piece of software a device driver and any specifics of device interaction are
+    encapsulated within
+
+The encapsulation can have downsides as well 
+    If there is a device that has many special capabilities but has to present a generic interface
+    to the rest of the kernel those special capabilities will go unused. ALl devices go with a baseline
+    capabilities and special add on will be lost to the file system.
+
+An IDE disk presents a simple interface to the system, consisting of four types of registers: 
+    control, command blocks, status, and error 
+    These registers are available by reading or writing to specific I/O addresses 
+    The basic protocol to interact with the device is as follows:
+        Wait for drive to be ready 
+        Write perameters to command registers 
+        Start the I/O
+        Data transfer 
+        Handle interrupts 
+        Error handling 
+
+There are four primary functions in the protocol; 
+    first, ide_rw() which queues a reqest or issues it directly to the disk. the routine waits for the request to complete 
+        and the calling process to sleep 
+    second, ide_start_request() used to send a request to the disk, in and out x86 instructions are called to read and write 
+        device registers 
+    the start request routine uses the third function, ide_wait_ready() to ensure the drive is ready before issuing a request 
+    finally the fourth, ide_intr() is invoked when an interrupt takes place it reads data from the device, wakes the prcess waiting 
+        for the I/O to complete and launches the next I/O via ide_start_request()
+
+
+
