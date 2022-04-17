@@ -468,6 +468,42 @@ The file descriptor is a capbility, a handle that gives you the power to perform
 
 A simple array (with a maximum of NOFILE open files) tracks which files are 
     opened on a per-process basis. Each entry of the array is actually just a pointer 
-    to a struct file, which will be used to track information about the file being read or written
+    to a struct file, which will be used to track information about the file being 
+    read or written
 
 *** Reading and Writing Files ***
+You can use strace to see what a file is doing when running a command on it. 39.4
+    has an example of what happens when you run cat foo, foo is a txt file with 
+    the world "hello" in it
+
+each running process already has three files open, standard input (which the 
+    process can read to receive input), standard output (which the process 
+    can write to in order to dump information to the screen), and standard 
+    error (which the process can write error messages to).
+
+These are represented by file descriptors 0, 1, and 2, respectively. 
+    Thus, when you first open another file (as cat does above),
+    it will almost certainly be file descriptor 3
+
+After open works cat uses read() system call to repeatedly read some bytes from a file. 
+    The first argument to read() is the file descriptor, thus telling the file system 
+        which file to read; a process can of course have multiple files open at once, and 
+        thus the descriptor enables the operating system to know which file a particular
+        read refers to
+    The second argument points to a buffer where the result of the read() will be placed 
+        in the system-call trace above, strace sshows the results of the read in this spot 
+        ("hello") 
+    The third argument is the size of the buffer which in this case is 4kb. The call to 
+        read returns successfully, here returning the number the number of bytes it reads 
+        (6, which includes 5 for the letters in the word hello and one for end of line
+        marker)
+
+At this point, you see another interesting result of the strace: a single call to the write() 
+    system call, to the file descriptor 1, which is the stdout argument 
+
+The cat program then tries to read more from the file, but since there are no bytes left in 
+    the file, the read() returns 0 and the program knows that this means it has read the entire 
+    file. Thus, the program calls close() to indicate that it is done with the file “foo”, 
+    passing in the corresponding file descriptor. The file is thus closed, and the reading 
+    of it thus complete.
+
