@@ -212,3 +212,59 @@ In modern systems, disks can accommodate multiple outstanding requests,
     information to service said requests in the best possible (SPTF) 
     order.
 
+
+Chapter 38: Redundant Arrays of Inexpensive Disks (RAIDS)
+How do we make a faster and larger disk?
+Redundant Array of Inexpensive Disks, RAID, a technique to use multiple 
+    disks in concert to build faster, bigger, and more reliable systems
+
+Externally a RAID looks like a regular disk. A group of blocks one can
+    read and write too. Internally the RAID is a complex beast consisting
+    of multiple disks, memory (both volitile and non) and one or more 
+    processors to manage the system. 
+
+Advangtages over disk: 
+    performance, using mulitple disks in parallel can greatly speed up IO
+    times 
+    capacity: large data demands large disks
+    Reliability: spreading data across multiple disks (without RAIDs) 
+        makes the data more vunerable but with some form of Redundancy
+        raids can tolerate the loss of a disk and keep operating as if 
+        nothing were wrong 
+    Transparently: to systems that use them, i.e., a RAID just looks 
+        like a big disk to the host system. The beauty of transparency, 
+        of course, is that it enables one to simply replace a disk with 
+        a RAID and not change a single line of software
+    Deployability: RAID enables users and admin to put a RAID to use 
+        without worries of software compatability 
+
+*** Interface and RAID internals ***
+To the file system a RAID looks like a big, fast, and reliable disk. Just
+    as with a single disk, it presents itself as a linear array of blocks
+
+When a file system issues a logical I/O request to the RAID, the RAID 
+    internally must calulate which disk (or disks) to access in order to 
+    complete the request, and then issue one or more physical I/O's to 
+    do so
+
+RAID systems are often external hardware that is connected to the host 
+    througn SATA or SCSI. 
+Internally it is a complicated system that can consist of a 
+    microcontroller that runs firmware to direct the operation of the 
+    RAID volite memory such as DRAM to buffer data blocks as they are 
+    read/written and in some cases non volitle memory to buffer writes 
+    safely and perhaps even specialized logic to perform parity 
+    calulations 
+Hight level, a RAID is very much a specialized computer system, it has a
+    processor, memory, and disks, however, intead of running applications
+    it runs specialized software designed to operate the RAID 
+
+*** Fault Model ***
+RAIDs are designed to detect and recover from certain kinds of disk 
+    faults; thus, knowing exactly which faults to expect is critical in 
+    arriving upon a working design.
+Fail-Stop: A fault mode that makes disks be in 2 states. a disk can be in
+    exactly one of two states: working or failed. With a working disk, 
+    all blocks can be read or written. In contrast, when a disk has 
+    failed, we assume it is permanently lost.
+
