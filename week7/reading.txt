@@ -268,3 +268,147 @@ Fail-Stop: A fault mode that makes disks be in 2 states. a disk can be in
     all blocks can be read or written. In contrast, when a disk has 
     failed, we assume it is permanently lost.
 
+ Assumptions of fail-stop: It assumes that a failed disk is easily 
+    detected. 
+
+*** How to evaulate a RAID ***
+Evaulate amoung 3 axes:
+    Capacity: Given a set of N disks with B blocks, how much useful 
+        capacity is available to clients? 
+            Without Redundancy the answer is N*Basic
+            If we use mirrioring it is (N*B)/2
+    Reliability: How many disk faults can the given design tolerate 
+    Performance: Depends on the workload presentenced to the disk array 
+
+*** RAID Level 0: Stripping ***
+It serves as an excellent upper-bound on performance and capacity 
+
+The simplest form of stripping will stripe blocks across the disks of 
+    the system as follows, figure 38.1
+    It is designed to extract the most amount of parallelism from the 
+        array when requests are made for contigous chunks of the array 
+
+*** Chunk Size ***
+Chunk size mostly affects performance of the array
+    a small chunk size implies that many files will get striped across 
+    many disks, thus increasing the parallelism of reads and writes to a 
+    single file
+    A big chunk size, on the other hand, reduces such intra-file 
+    parallelism, and thus relies on multiple concurrent requests to 
+    achieve high throughput.
+
+determining the “best” chunk size is hard to do, as it requires a
+    great deal of knowledge about the workload presented to the disk 
+    system
+
+*** Back to Raid-0 analysis ***
+From the standpoint of reliability, striping is also perfect, but in the 
+    bad way: any disk failure will lead to data loss. Finally, 
+    performance is excellent: all disks are utilized, often in parallel, 
+    to service user I/O requests.
+
+*** Evaluating RAID Performance***
+One can consider 2 performance matrix
+
+first is single-request latency. Understanding the latency of a single 
+    I/O request to a RAID is useful as it reveals how much parallelism 
+    can exist during a single logical I/O operation.
+second is steady-state throughput of the RAID, i.e., the total bandwidth 
+    of many concurrent requests.
+
+example in pg 7:
+calulate sequential access time:
+S = Amount of data/time access 
+    time access can be calualted avg seek time+avg totaltional delay
+    +transfer of disk rate
+
+random:
+R = amount of data (10kb) / time to access
+
+*** RAID lv 1: Mirroring ***
+With a mirrored system, we simply make more than one copy of each block 
+    in the system; each copy should be placed on a separate disk, of 
+    course. By doing so, we can tolerate disk failures.
+    When reading you can read from either copy and its the same 
+    when writing you need to write to both disks in parallel in order to 
+        keep the mirror
+    
+*** RAID 1 - Analysis ***
+From a capacity standpoint, RAID-1 is expensive;
+    with the mirroring level = 2, we only obtain half of our peak useful 
+    capacity
+From a reliability standpoint, RAID-1 does well. It can tolerate the 
+    failure of any one disk.
+
+From the perspective of the latency of a single read request, we can see 
+    it is the same as the latency on a single disk; all the RAID-1 does 
+    is direct the read to one of its copies. 
+
+A write is a little different: it requires two physical writes to 
+    complete before it is done. So the time will be slightly longer than 
+    a single Disk
+
+*** RAID level 4: Saving Space with Parity *** (look over)
+parity block, store the redundant information for that stripe of blocks
+
+*** RAID-4 Analysis ***
+From a capacity standpoint, RAID-4 uses 1 disk for parity information 
+    for every group of disks it is protecting
+    Thus, our useful capacity for a RAID group is (N − 1) · B.
+
+Performance: This time, let us start by analyzing steadystate 
+    throughput. Sequential read performance can utilize all of the disks
+    except for the parity disk, and thus deliver a peak effective 
+    bandwidth of (N − 1) · S MB/s (an easy case).
+
+How to write to RAID-4 if one disk needs to change?
+Two methods: 
+    The first, known as additive parity, requires us to do the 
+        following. To compute the value of the new parity block, read in 
+        all of the other data blocks in the stripe in parallel (in the
+        example, blocks 0, 2, and 3) and XOR those with the new block (1)
+        The problem with this technique is that it scales with the 
+        number of disks, and thus in larger RAIDs requires a high number 
+        of reads to compute parity
+    Second: Subractive Parity: Works in 3 parts 
+        First: we read in the ol data, in the disk we want to rewrite, 
+        and the old parity. 
+        Then, we compare the old and the new data. If they are the same
+            then the data and parity stay the same. If they are different
+            then we flip the old parity bit to the opposite of its 
+            current state (ex parity = 1, then we change to parity=0). 
+
+*** RAID lv 5: Rotating Parity ***
+Similar to RAID-4
+The effective capacity and failure tolerance of the two levels are 
+    identical. So are sequential read and write performance. The latency 
+    of a single request (whether a read or a write) is also the same as 
+    RAID-4.
+
+Random read performance is a little better, because we utilize all disks 
+Finally, random write performance improves noticeably over RAID-4, as it 
+    allows for parallelism across requests.
+
+---- Figure 38.8 in page 15 has a breakdown of the differences ----
+
+Because RAID-5 is basically identical to RAID-4 except in the few cases
+    where it is better, it has almost completely replaced RAID-4 in the 
+    marketplace.
+
+The only place where it has not is in systems that know they will
+    never perform anything other than a large write, thus avoiding the 
+    smallwrite problem altogether [HLM94]; in those cases, RAID-4 is 
+    sometimes used as it is slightly simpler to build.
+
+To conclude, if you strictly want performance and do not care about
+    reliability, striping is obviously best.
+
+If, however, you want random I/O performance and reliability, mirroring 
+    is the best;  the cost you pay is in lost capacity
+
+If capacity and reliability are your main goals, then RAID5 is the 
+    winner; the cost you pay is in small-write performance. 
+
+Finally, if you are always doing sequential I/O and want to maximize 
+    capacity, RAID-5 also makes the most sense.
+
