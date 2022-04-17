@@ -412,3 +412,62 @@ If capacity and reliability are your main goals, then RAID5 is the
 Finally, if you are always doing sequential I/O and want to maximize 
     capacity, RAID-5 also makes the most sense.
 
+
+
+Chapter 39: File Directories 
+In this chapter we add one more cirtical piece to the virtualization puzzle:
+    persistent storage, such as a harddtive or SSD, store information permanently
+    keeps data after power is off, unlike ram. 
+
+*** File and Directories ***
+File, is a simple linear array of bytes each of which can read or write. Each
+    file has some kind of low-level name usually a number of some kind, often 
+    the user is not aware of this name. the lower level name is referrd to as 
+    inode-number 
+
+    In most systems the OS does not know what kind of file you storage, .txt, pic
+    or code it just stores info so when you try to retrieve it, its exactly 
+    what you put inside of it 
+
+Directory, like a file, has a lower-level name, inode number, but its contents 
+    specific, it contains a list of, user readable names, and the inode number. 
+    For example if we have a file called "foo" with the inode number "10" it 
+    would be stored in the directory as ("foo", "10"), with its lower and 
+    user readable name mapped together. 
+
+You can store directories within directories so it would look like a 
+    hierarchy with all the files and other directories stemming off
+    a root directory 
+
+*** File system Interface ***
+To remove files we would need to call unlink()
+
+*** Creating Files ***
+To create a file you need to call open() and the flag "O_CREAT" in order 
+    for a program to create a new file. 
+
+---Code example that create a file called "foo" in the current working
+    directory 
+    int fd = open("foo", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+
+The routine open() takes a number of different flags. In this example, 
+    the second parameter creates the file (O CREAT) if it does not exist,
+    ensures that the file can only be written to (O WRONLY), and, if the file
+    already exists, truncates it to a size of zero bytes thus removing any 
+    existing content (O TRUNC). The third parameter specifies permissions, in this
+    case making the file readable and writable by the owner.
+
+open() returns a file descriptor, its an integer, private per process, that is used
+    in UNIX to access files, thus once a file is opened you will use the descriptor
+    to read and write, assuming you have permissions for it 
+
+The file descriptor is a capbility, a handle that gives you the power to perform
+    certain operations. It can also be thought up as a pointer to an object 
+    of type file. once you have such an object, you can call other “methods” 
+    to access the file, like read() and write()
+
+A simple array (with a maximum of NOFILE open files) tracks which files are 
+    opened on a per-process basis. Each entry of the array is actually just a pointer 
+    to a struct file, which will be used to track information about the file being read or written
+
+*** Reading and Writing Files ***
