@@ -865,4 +865,123 @@ The region that holds user data is called "data region" that takes up
 
 Inode will store metadata, size of files, owners, rights, modify times, 
     and other similar info. That will take up 5 out of our remaining 8 
-    blocks. Inodes are not that big, 
+    blocks. Inodes are not that big, usually 128 to 256 bytes per inode.
+    a 4kb block can hold 16 inodes and our file system above contains 80
+    inodes. 
+
+To accomodate inodes we need to reserve some space for an inode table, 
+    which is an array of on-disk inodes. 
+
+The number of inodes represents the total number of files that we can have
+    in our system. 
+
+Our system now has Data blocks, inode blocks, but it needs more 
+    It needs a way to track whether inodes or data blocks are free 
+    or allocated. 
+        Allocation strctures are a requiste element in any file system
+    
+types of allocation structures include,
+    free list, that points to the first free block, which then points to 
+        the next free block and so forth 
+    Bitmap, a simple structure that each bit is used to indicate whether 
+        the corresponding object/block is free (0) or in use (1) and thus 
+        our new on disk layout with an inode bitmap (i) and a data 
+        bitmap (d)
+    The data bitmap and inode bitmap will each use one 4kb block so 2 in
+        total
+
+The bitmaps can track whether 32k objects are allocated and yet we only use 
+    80 inodes and 56 data blocks. We use 4kb blocks for bitmaps for 
+    simplicity
+
+There is one block left in our system and it will be used for our 
+    Super block. 
+    Super block: denoted by S on the diagram (pg4) contains information 
+        about this particular file system including for example; 
+        how many inodes and data blocks are in the file system
+        where the inode table begins and so forth 
+        It will likely also include a magic number of some kind to 
+        identify the file system type (in this case vsfs)
+    
+When mounting the system the OS will read the superblock first to 
+    initialize various parameters and then attach the volume to the
+    file system tree. 
+
+When the files within the volume are accessed the system will thus know 
+    exactly where to look for the needed on disk structures 
+
+*** File Organization: The inode ***
+Inodes are super important, it short for inode index 
+ 
+It is a generic name that is used in many file systems to describe the 
+    structure that holds the metadata for a given file, such as length,
+    permissions, and location of constituent blocks.
+
+Each inode is implicitly referred to by a number (i number) or low-level
+    name.
+
+Given a i-number you should directly be able to calulate where on the disk 
+    the corresponding inode is located 
+
+To read inode number 32, the file system would first calculate the off-
+    set into the inode region (32 · sizeof (inode) or 8192), add it to the start
+    address of the inode table on disk (inodeStartAddr = 12KB), and thus
+    arrive upon the correct byte address of the desired block of inodes: 20KB.
+    
+Recall that disks are not byte addressable, but rather consist of a large
+    number of addressable sectors, usually 512 bytes.
+
+Thus, to fetch the block of inodes that contains inode 32, the file system 
+    would issue a read to sector (20×1024)/512 , or 40, to fetch the desired 
+    inode block.
+
+More generally, the sector address sector of the inode block can be 
+    calculated as follows:
+    blk = (inumber * sizeof(inode_t)) / blockSize;
+    sector = ((blk * blockSize) + inodeStartAddr) / sectorSize;
+
+Each inode is all the information you need about a file; 
+    type: reg file, dir, mp4
+    size: the number of blocks allocated to it
+    proection info: such as who owns the file as who can access it 
+    time info: including when the file are created, mod, last accessed, 
+        info about where the data blocks are on the disk 
+    --- We refer to all that info about a file as metadata ---
+
+One of the most important decisions in design of the inode is how
+    it refers to where data blocks are
+
+One solution would be to have one or more direct pointers inside 
+    each inode each pointer refers to one disk block that belongs 
+    to the file. 
+
+Such an approach is limited: for example, if you want to have 
+    a file that is really big (e.g., bigger than the block size 
+    multiplied by the number of direct pointers inthe inode), you 
+    are out of luck.
+
+*** The multi-level index *** 
+Indirect pointer: Points to a block that contains more pointers 
+    each of which points to user data 
+
+Not surprisingly, in such an approach, you might want to support
+    even larger files
+
+the double indirect pointer. This pointer refers to a block that 
+    contains pointers to indirect blocks, each of which contain pointers 
+    to data blocks.
+
+Overall, this imbalanced tree is referred to as the multi-level index ap-
+    proach to pointing to file blocks.
+
+"Truths of file systems"
+Most files are small                    2K is the most common size
+Average file size is growing            Almost 200K is the average
+Most bytes are stored in large files    A few big files use most of space
+File systems contains lots of files     Almost 100K on average
+File systems are roughly half full      Even as disks grow, file systems
+                                        remain  ̃50% full
+Directories are typically small         Many have few entries; most
+                                        have 20 or fewer
+                                    
+*** Directory Organization ***
