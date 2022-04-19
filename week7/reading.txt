@@ -823,3 +823,46 @@ performing that one last unlink() of it from the directory hierarchy.
 A rudimentary form of such controls are provided by permissions
 bits; more sophisticated access control lists allow for more precise
 control over exactly who can access and manipulate information.
+
+
+Chapter 40: File System Implementation 
+We introduce a file system implementation known as VSFS  
+    (very simple file system)
+
+This is a simplified version of a typical UNIX system and thus serves
+    to introduce some of the basic on-disk structures, access methods 
+    and various policies that you will find in many file systems today
+
+The file system is pure software that does not need to add hardware
+    features to make some aspects work better. 
+
+Different file systems have different data structures and do something 
+    better or worse than others. 
+
+*** The way to think ***
+Think about file systems in 2 ways 
+Data Structures: what types of on-disk structures are utilized by the 
+    file system to organize its data and metadata? Such as array of 
+    blocks, other objects, tree-based structures 
+
+Second, access methods: how does it map the calls made by a process, such
+    as open(), read(), write(), etc. onto structures? Which structures 
+    are read during the execution of a particular system call? Which are
+    written? How efficiently are all of these steps performed?
+
+*** Overall Organization ***
+The first thing we need to do is divide the disk into blocks, simple 
+    file systems use just one block size and thats what we will do 
+    4kb size
+
+The view of our disk partition is: a series of blocks, each size 4kb. The
+    blocks are addressed from 0 to N -1, in a partition of size N 4-KB 
+    blocks. Assume we have a really small disk, with just 64 blocks:
+    64 blocks are into 8 byte (8 bits each) blocks
+
+The region that holds user data is called "data region" that takes up
+    most of the space. 56 out of the 64 blocks. 
+
+Inode will store metadata, size of files, owners, rights, modify times, 
+    and other similar info. That will take up 5 out of our remaining 8 
+    blocks. Inodes are not that big, 
