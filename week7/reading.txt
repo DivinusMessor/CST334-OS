@@ -985,3 +985,37 @@ Directories are typically small         Many have few entries; most
                                         have 20 or fewer
                                     
 *** Directory Organization ***
+A directory contains a list of entry name, inode numeber, pairs
+
+For each file or directory in a given dir, there is a string and a  
+    number in the data blocks of the dir 
+
+For each str there may also be a length 
+
+Ex. 
+Dir1, inode number 5, has 3 files (foo, bar, foo_bar_long_name) with 
+    inode number 12, 13, 24 respectively
+The on disk data for Dir1 would look like;
+inum |  reclen |    strlen |    name
+5       12          2           .
+2       12          3           ..
+12      12          4           foo
+13      12          4           bar
+24      36          28          foobar_is_a_pretty_longname
+
+In this example, each entry has an inode number, record length (the
+    total bytes for the name plus any left over space), string length 
+    (the actual length of the name), and finally the name of the entry.
+
+Deleting a file (e.g., calling unlink()) can leave an empty space in
+    the middle of the directory, and hence there should be some way to 
+    mark that as well (e.g., with a reserved inode number such as zero).
+
+Directories are often treated as special kind of files, thus directories
+    have an inode number somewhere in the inode table (the field of the 
+    inode being marked as "directory" instead of "regular file")
+
+The directory has data blocks pointed to by the inode, and possilbly 
+    indirect blocks, these blocks love in the data block region of our
+    simple file system. Our on-disk structure thus remains unchanged. 
+
